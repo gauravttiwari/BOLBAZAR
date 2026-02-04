@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node clean-build.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "node clean-build.js",
+    "fresh": "npm run clean && npm run dev",
+    "safe-dev": "taskkill /F /IM node.exe 2>nul || true && npm run clean && npm run dev"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",

@@ -9,7 +9,7 @@ import useCartContext from "@/context/CartContext";
 import useVoiceContext from "@/context/VoiceContext";
 import { IconFilter, IconMicrophone, IconShoppingCart } from "@tabler/icons-react";
 import pluralize from "pluralize";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const sortOptions = [
   { name: 'Most Popular', href: '#', current: true },
@@ -70,8 +70,11 @@ function classNames(...classes) {
 const productView = () => {
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [productList, setProductList] = useState([]);
   const [masterList, setMasterList] = useState([]);
+  const [currentCategory, setCurrentCategory] = useState('');
+  const [currentSubcategory, setCurrentSubcategory] = useState('');
 
   const [uniqueFilters, setUniqueFilters] = useState([]);
 
@@ -158,6 +161,44 @@ const productView = () => {
       setProductList(masterList);
       resetTranscript();
     }
+    else if (finalTranscript.includes('add') && (finalTranscript.includes('cart') || finalTranscript.includes('product'))) {
+      // Extract product name from command
+      let productName = finalTranscript
+        .replace('add', '')
+        .replace('to cart', '')
+        .replace('product', '')
+        .replace('to', '')
+        .trim();
+      
+      if (productName) {
+        // Find product by name (fuzzy match)
+        const foundProduct = productList.find(product => 
+          product.pname?.toLowerCase().includes(productName.toLowerCase()) ||
+          product.category?.toLowerCase().includes(productName.toLowerCase()) ||
+          product.pdetail?.toLowerCase().includes(productName.toLowerCase())
+        );
+        
+        if (foundProduct) {
+          addItemToCart(foundProduct);
+          voiceResponse(`Added ${foundProduct.pname} to cart`);
+          triggerModal(
+            'Added to Cart',
+            `${foundProduct.pname} has been added to your cart`,
+            true,
+            <IconShoppingCart size={50} />
+          );
+          resetTranscript();
+        } else {
+          voiceResponse(`Sorry, I couldn't find ${productName}. Please try searching for it first.`);
+          resetTranscript();
+        }
+      }
+    }
+    else if (finalTranscript.includes('checkout') || finalTranscript.includes('place order')) {
+      voiceResponse('Taking you to checkout');
+      router.push('/user/checkout');
+      resetTranscript();
+    }
   }, [finalTranscript])
 
   const sliceText = (text, maxLength) => {
@@ -172,15 +213,60 @@ const productView = () => {
         return response.json();
       })
       .then((data) => {
-        console.log(data);
-        setProductList(data);
+        console.log("All Products:", data);
         setMasterList(data);
+        
+        // Apply filters from URL parameters
+        const category = searchParams.get('category');
+        const subcategory = searchParams.get('subcategory');
+        
+        let filteredData = data;
+        
+        if (category || subcategory) {
+          setCurrentCategory(category || '');
+          setCurrentSubcategory(subcategory || '');
+          
+          console.log("🔍 Filter params:", { category, subcategory });
+          console.log("📦 Total products:", data.length);
+          
+          filteredData = data.filter(product => {
+            let matchesCategory = true;
+            let matchesSubcategory = true;
+            
+            // Category filter - check in category field or product name
+            if (category) {
+              matchesCategory = 
+                product.category?.toLowerCase().includes(category.toLowerCase()) ||
+                product.pname?.toLowerCase().includes(category.toLowerCase());
+              console.log(`Product: ${product.pname}, Category match: ${matchesCategory}`);
+            }
+            
+            // Subcategory filter - check in subcategory field first, then name, detail, or category
+            if (subcategory) {
+              matchesSubcategory = 
+                product.subcategory?.toLowerCase().includes(subcategory.toLowerCase()) ||
+                product.pname?.toLowerCase().includes(subcategory.toLowerCase()) ||
+                product.pdetail?.toLowerCase().includes(subcategory.toLowerCase()) ||
+                product.category?.toLowerCase().includes(subcategory.toLowerCase());
+              console.log(`Product: ${product.pname}, Subcategory: ${product.subcategory}, match: ${matchesSubcategory}`);
+            }
+            
+            const result = matchesCategory && matchesSubcategory;
+            console.log(`Final result for ${product.pname}: ${result}`);
+            return result;
+          });
+          
+          console.log("✅ Filtered Products:", filteredData.length, filteredData);
+        }
+        
+        setProductList(filteredData);
+        
         const filters = [...new Set(data.map(product => (
-          product.features.map(feature => feature.name)
+          product.features?.map(feature => feature.name) || []
         )).flat())]
         console.log(filters);
         setUniqueFilters(
-          data.map((product) => product.colors).flat().filter((value, index, self) => self.indexOf(value) === index)
+          data.map((product) => product.colors || []).flat().filter((value, index, self) => self.indexOf(value) === index)
         );
       })
       .catch((err) => {
@@ -190,7 +276,7 @@ const productView = () => {
 
   useEffect(() => {
     fetchProductData();
-  }, []);
+  }, [searchParams]);
 
 
   const filterByCategory = (category) => {
@@ -418,7 +504,32 @@ const productView = () => {
 
         <main className="mx-5 max-w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-baseline justify-between border-b border-gray-200 pb-5 pt-5">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900">Products</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+                {currentCategory || 'Products'}
+              </h1>
+              {currentSubcategory && (
+                <p className="mt-2 text-lg text-gray-600">
+                  {currentSubcategory}
+                </p>
+              )}
+              <p className="mt-2 text-sm text-gray-500">
+                {productList.length} products found
+              </p>
+              {(currentCategory || currentSubcategory) && (
+                <button
+                  onClick={() => {
+                    setCurrentCategory('');
+                    setCurrentSubcategory('');
+                    setProductList(masterList);
+                    router.push('/productView');
+                  }}
+                  className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center">
 

@@ -5,6 +5,12 @@ const userSchema = new Schema({
     lname:String,
     email:String,
     password:String,
+    publicKeys: [{
+        key: String,
+        deviceInfo: String,
+        createdAt: { type: Date, default: Date.now },
+        lastUsed: { type: Date, default: Date.now }
+    }]
 })
 
 module.exports= model('user',userSchema)

@@ -35,9 +35,9 @@ const Navbar = () => {
             {/* navbar */}
             <nav className="flex justify-between  text-white w-screen bg-[#1E2852] ">
               <div className="px-5 xl:px-12 py-2 flex w-full items-center ">
-                <a className="text-3xl font-bold font-heading" href="#">
-                  <div className=" ">
-                    <img src="bolbazar-logo.png" alt="BolBazar" className="h-16" />
+                <a className="text-3xl font-bold font-heading" href="/">
+                  <div className="flex items-center">
+                    <span className="text-white text-2xl">🛒 BolBazar</span>
                   </div>
                 </a>
                 {/* Nav Links */}
@@ -48,7 +48,7 @@ const Navbar = () => {
                     </a>
                   </li>
                   <li>
-                    <a className="hover:text-gray-200" href="#">
+                    <a className="hover:text-gray-200" href="/category">
                       Category
                     </a>
                   </li>

@@ -21,12 +21,27 @@ const Addproduct = () => {
     },
   ]);
 
+  const [subcategories, setSubcategories] = useState([]);
+
+  // Categories with their subcategories
+  const categoryOptions = {
+    "Electronics": ["Mobiles", "Laptops", "Tablets", "Cameras", "Headphones", "Smartwatches"],
+    "Fashion": ["Men's Clothing", "Women's Clothing", "Kids Wear", "Footwear", "Accessories"],
+    "Home & Kitchen": ["Furniture", "Home Decor", "Kitchen Appliances", "Bedding", "Cookware"],
+    "Beauty & Personal Care": ["Skincare", "Makeup", "Haircare", "Fragrances", "Personal Care"],
+    "Sports & Fitness": ["Gym Equipment", "Sports Wear", "Yoga", "Cycling", "Outdoor Sports"],
+    "Books & Stationery": ["Fiction", "Non-Fiction", "Education", "Stationery", "Comics"],
+    "Toys & Games": ["Action Figures", "Board Games", "Puzzles", "Educational Toys", "Outdoor Toys"],
+    "Automotive": ["Car Accessories", "Bike Accessories", "Tools", "Car Care", "Parts"]
+  };
+
   const addProductForm = useFormik({
     initialValues: {
       pname: "",
       pdetail: "",
       pprice: "",
       category: "",
+      subcategory: "",
       images: [],
       createdAt: "",
     },
@@ -345,16 +360,44 @@ const Addproduct = () => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="pcategory" className="mb-2">
+              <label htmlFor="category" className="mb-2">
                 Product Category
               </label>
-              <input
+              <select
                 name="category"
-                onChange={addProductForm.handleChange}
+                onChange={(e) => {
+                  addProductForm.handleChange(e);
+                  setSubcategories(categoryOptions[e.target.value] || []);
+                  addProductForm.setFieldValue('subcategory', '');
+                }}
                 value={addProductForm.values.category}
-                className="w-full bg-gray-300 py-1 rounded mb-3"
-                required=""
-              />
+                className="w-full bg-gray-300 py-2 px-2 rounded mb-3"
+                required
+              >
+                <option value="">Select Category</option>
+                {Object.keys(categoryOptions).map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="subcategory" className="mb-2">
+                Product Subcategory
+              </label>
+              <select
+                name="subcategory"
+                onChange={addProductForm.handleChange}
+                value={addProductForm.values.subcategory}
+                className="w-full bg-gray-300 py-2 px-2 rounded mb-3"
+                required
+                disabled={!addProductForm.values.category}
+              >
+                <option value="">{addProductForm.values.category ? 'Select Subcategory' : 'Select Category First'}</option>
+                {subcategories.map((subcat) => (
+                  <option key={subcat} value={subcat}>{subcat}</option>
+                ))}
+              </select>
             </div>
 
             {features.map(({ name, value }, index) => (

@@ -1,149 +1,157 @@
 "use client";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import React from "react";
-import toast from "react-hot-toast";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import useSellerContext from "@/context/SellerContext";
+import toast from "react-hot-toast";
+import { passwordlessLogin } from "@/utils/passwordlessAuth";
+import useAppContext from "@/context/AppContext";
 
-const Sellerlogin = () => {
-  const addSellerSchema = Yup.object().shape({});
+const SellerLogin = () => {
   const router = useRouter();
+  const { setLoggedIn } = useAppContext();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const { setSellerLoggedIn } = useSellerContext();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-  const addSellerForm = useFormik({
-    initialValues: {
-      email: "",
-      password: "",
-    },
-    onSubmit: async (values, action) => {
-      console.log(values);
-
-      const res = await fetch("http://localhost:5000/seller/authenticate", {
-        method: "POST",
-        body: JSON.stringify(values),
-        headers: {
-          "Content-Type": "application/json",
-        },
+    try {
+      console.log('🔐 Starting seller login for:', email);
+      
+      // Request challenge from seller endpoint
+      const challengeRes = await fetch(`http://localhost:5000/seller/request-challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       });
-      console.log(res.status);
 
-      if (res.status === 200) {
-        toast.success("Login Successfull");
-        const data = await res.json();
-        console.log(data);
-        sessionStorage.setItem("seller", JSON.stringify(data));
-        setSellerLoggedIn(true);
-        action.resetForm();
-        router.push("/seller/sellerdashboard");
-      } else if (res.status === 400) {
-        toast.error("Some error occured");
+      if (!challengeRes.ok) {
+        throw new Error('Seller not found. Please signup first on this device.');
       }
-    },
 
-    validationSchema: addSellerSchema,
-  });
+      const { challenge } = await challengeRes.json();
+      console.log('✅ Received challenge:', challenge);
+      
+      // Get private key and sign
+      const { getPrivateKey, signChallenge, getDeviceInfo } = await import('@/utils/crypto');
+      const privateKey = await getPrivateKey(email);
+      if (!privateKey) {
+        throw new Error('No private key found. Please signup first on this device.');
+      }
+      console.log('✅ Retrieved private key');
+
+      const signature = await signChallenge(challenge, privateKey);
+      console.log('✅ Generated signature (first 50 chars):', signature.substring(0, 50));
+      
+      const deviceInfo = getDeviceInfo();
+
+      // Verify with seller endpoint
+      const verifyRes = await fetch(`http://localhost:5000/seller/verify-challenge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, signature, deviceInfo })
+      });
+
+      if (!verifyRes.ok) {
+        const error = await verifyRes.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      const data = await verifyRes.json();
+      console.log('✅ Login successful!');
+      toast.success("🎉 Seller Login Successful!");
+      sessionStorage.setItem('seller', JSON.stringify(data));
+      setLoggedIn(true);
+      router.push("/seller/sellerdashboard");
+    } catch (error) {
+      console.error('Seller login error:', error);
+      toast.error(error.message || "Login failed. Please signup first.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      {/* component */}
-      {/* Container */}
-      <div
-        className="container-fluid flex items-center justify-center bg-purple-50"
-        style={{ height: "100vh" }}
-      >
-        <div className=" w-3/4 --tw-shadow-color: #000;  ">
-          <div className="grid grid-cols-2 h-3/4">
-            <div className="">
-              <img
-                src="https://www.pngplay.com/wp-content/uploads/6/E-Commerce-Shopping-PNG-Clipart-Background.png"
-                alt=""
-                className="px-5 py-4 "
-              />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="w-full max-w-4xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="grid md:grid-cols-2">
+          {/* Left Side */}
+          <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-orange-500 to-red-500 p-8">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🏪</div>
+              <h2 className="text-3xl font-bold text-white mb-4">Seller Portal</h2>
+              <p className="text-orange-100 text-lg">
+                Manage your products and orders securely
+              </p>
             </div>
-            <div>
-              <form onSubmit={addSellerForm.handleSubmit}>
-                <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight  text-black">
-                  Hey Seller, Welcome Back!
-                </h2>
-                <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium leading-6  text-black"
-                    >
-                      Email address
-                    </label>
-                    <div className="mt-2">
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        onChange={addSellerForm.handleChange}
-                        value={addSellerForm.values.email}
-                        autoComplete="email"
-                        required
-                        className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white"
-                      />
-                    </div>
-                  </div>
+          </div>
 
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="password"
-                        className="block text-sm font-medium leading-6  mt-8 text-black"
-                      >
-                        Password
-                      </label>
-                      <div className="text-sm mt-8">
-                        <a
-                          href="/resetPassword"
-                          className="font-semibold  hover:text-[#D4A056]-500 text-[#FC9B3C] "
-                        >
-                          Forgot password?
-                        </a>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        onChange={addSellerForm.handleChange}
-                        value={addSellerForm.values.password}
-                        autoComplete="current-password"
-                        required
-                        className="block w-full rounded-md border-0 py-1.5 px-1.5 text-[#000000] shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-[#ffffff]"
-                      />
-                    </div>
-                  </div>
+          {/* Right Side - Form */}
+          <div className="p-8 md:p-12">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Seller Login</h2>
+              <p className="text-gray-600">Access your seller dashboard</p>
+            </div>
 
-                  <div className="mt-10">
-                    <button
-                      type="submit"
-                      className="flex w-full justify-center rounded-md bg-[#FC9B3C] mt-6 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-text-[#D4A056] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    >
-                      Sign in
-                    </button>
-                  </div>
-                  <div className="text-sm mt-8 text-center">
-                    <a
-                      href="/seller/sellersignup"
-                      className="font-semibold  hover:text-[#D4A056]-500 text-[#FC9B3C] "
-                    >
-                      Yet not register? Register Here!
-                    </a>
-                  </div>
+            <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">🔐</span>
+                <div>
+                  <h3 className="font-semibold text-orange-900 mb-1">Passwordless Login</h3>
+                  <p className="text-sm text-orange-700">
+                    Secure seller authentication without passwords
+                  </p>
                 </div>
-              </form>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="seller@example.com"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+              >
+                {loading ? 'Signing in...' : '🏪 Login as Seller'}
+              </button>
+            </form>
+
+            <div className="mt-8 text-center space-y-3">
+              <p className="text-gray-600">
+                Not a seller yet?{' '}
+                <a href="/seller/sellersignup" className="text-orange-600 hover:text-orange-700 font-semibold">
+                  Register here
+                </a>
+              </p>
+              <div className="flex justify-center space-x-4 text-sm">
+                <a href="/login" className="text-gray-500 hover:text-orange-600">
+                  User Login
+                </a>
+                <span className="text-gray-300">|</span>
+                <a href="/admin/login" className="text-gray-500 hover:text-orange-600">
+                  Admin Login
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default Sellerlogin;
+export default SellerLogin;

@@ -1,195 +1,212 @@
 "use client";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import React from "react";
-import toast from "react-hot-toast";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { generateKeyPair, exportPublicKey, storePrivateKey, getDeviceInfo } from "@/utils/crypto";
 
-const SignUpSeller = () => {
-
+const SellerSignup = () => {
   const router = useRouter();
-  const addSellerSchema = Yup.object().shape({});
-  const addSellerForm = useFormik({
-    initialValues: {
-      fname: "",
-      lname: "",
-      email: "",
-      password: "",
-      cpassword: "",
-    },
-
-    onSubmit: async (values, action) => {
-      // values.image = selFile;
-      console.log(values);
-      const res = await fetch("http://localhost:5000/seller/add", {
-        method: "POST",
-        body: JSON.stringify(values),
-        headers: { "Content-type": "application/json" },
-      });
-      console.log(res.status);
-      action.resetForm();
-      if (res.status === 200) {
-        toast.success("SignUp successfully");
-        router.push("/sellerLogin");
-      } else {
-        toast.error("Something went wrong");
-      }
-    },
-    validationSchema: addSellerSchema,
+  const [formData, setFormData] = useState({
+    fname: "",
+    lname: "",
+    email: "",
+    phone: "",
+    businessName: ""
   });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Generate key pair
+      const keyPair = await generateKeyPair();
+      const publicKey = await exportPublicKey(keyPair.publicKey);
+      await storePrivateKey(keyPair.privateKey, formData.email);
+      const deviceInfo = getDeviceInfo();
+
+      // Send to seller endpoint
+      const res = await fetch("http://localhost:5000/seller/add-passwordless", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          publicKey,
+          deviceInfo
+        }),
+      });
+
+      if (res.status === 200) {
+        toast.success("🎉 Seller Account Created!");
+        setFormData({ fname: "", lname: "", email: "", phone: "", businessName: "" });
+        setTimeout(() => router.push("/sellerLogin"), 1500);
+      } else {
+        const error = await res.json();
+        toast.error(error.message || "Something went wrong");
+      }
+    } catch (error) {
+      console.error('Seller signup error:', error);
+      toast.error(error.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <>
-      <div
-        className="container-fluid flex items-center justify-center bg-purple-50"
-        style={{ height: "100vh" }}
-      >
-        <div className=" w-3/4 --tw-shadow-color: #000;">
-          <div className="grid grid-cols-2 h-3/4">
-            <div className="w-full h-auto">
-              <img
-                src="https://www.pngplay.com/wp-content/uploads/6/E-Commerce-Shopping-PNG-Clipart-Background.png"
-                alt=""
-                className="px-5 py-4 "
-              />
-            </div>
-            <div>
-              <form onSubmit={addSellerForm.handleSubmit}>
-                <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight  text-black">
-                  Hey Seller, Register Here !
-                </h2>
-                <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                  <div className="flex flex-wrap">
-                    <div className="w-1/2 pe-2">
-                      <label
-                        htmlFor="name"
-                        className="block text-sm font-medium leading-6  text-black"
-                      >
-                        First Name
-                      </label>
-
-                      <div className="mt-1">
-                        <input
-                          id="fname"
-                          name="fname"
-                          type="text"
-                          onChange={addSellerForm.handleChange}
-                          value={addSellerForm.values.fname}
-                          required
-                          className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-[#ffffff]"
-                        />
-                      </div>
-                    </div>
-                    <div className="w-1/2 ">
-                      <label
-                        htmlFor="name"
-                        className="block text-sm  font-medium leading-6  text-black"
-                      >
-                        Last Name
-                      </label>
-
-                      <div className="mt-1">
-                        <input
-                          id="lname"
-                          name="lname"
-                          type="text"
-                          onChange={addSellerForm.handleChange}
-                          value={addSellerForm.values.lname}
-                          required
-                          className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 bg-[#ffffff]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm mt-3 font-medium leading-6  text-black"
-                    >
-                      Email address
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        onChange={addSellerForm.handleChange}
-                        value={addSellerForm.values.email}
-                        autoComplete="email"
-                        required
-                        className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 bg-[#ffffff]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="password"
-                        className="block text-sm font-medium leading-6  mt-3 text-black"
-                      >
-                        Password
-                      </label>
-                    </div>
-                    <div className="mt-1">
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        onChange={addSellerForm.handleChange}
-                        value={addSellerForm.values.password}
-                        autoComplete="current-password"
-                        required
-                        className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 bg-[#ffffff]"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="cpassword"
-                        className="block text-sm font-medium leading-6  mt-3 text-black"
-                      >
-                        Confirm Password
-                      </label>
-                    </div>
-                    <div className="mt-1">
-                      <input
-                        id="cpassword"
-                        name="cpassword"
-                        type="password"
-                        onChange={addSellerForm.handleChange}
-                        value={addSellerForm.values.cpassword}
-                        autoComplete="current-password"
-                        required
-                        className="block w-full rounded-md border-0 py-1.5 px-1.5 text-black shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6 bg-[#ffffff]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-10">
-                    <button
-                      type="submit"
-                      className="flex w-full justify-center rounded-md bg-[#FC9B3C] mt-6 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-text-[#D4A056] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    >
-                      Sign in
-                    </button>
-                  </div>
-                  <div className="text-sm mt-8 text-center">
-                    <a
-                      href="/sellerLogin"
-                      className="font-semibold  hover:text-[#D4A056]-500 text-[#FC9B3C] "
-                    >
-                      Already register? Login Here!
-                    </a>
-                  </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 py-8">
+      <div className="w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="grid md:grid-cols-2">
+          {/* Left Side */}
+          <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-orange-500 to-red-500 p-8">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🛍️</div>
+              <h2 className="text-3xl font-bold text-white mb-4">Start Selling!</h2>
+              <p className="text-orange-100 text-lg mb-6">
+                Join thousands of sellers on BolBazar
+              </p>
+              <div className="space-y-3 text-left bg-white/10 p-6 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center text-white">
+                  <span className="text-2xl mr-3">✓</span>
+                  <span>Easy product management</span>
                 </div>
-              </form>
+                <div className="flex items-center text-white">
+                  <span className="text-2xl mr-3">✓</span>
+                  <span>Track orders in real-time</span>
+                </div>
+                <div className="flex items-center text-white">
+                  <span className="text-2xl mr-3">✓</span>
+                  <span>Secure passwordless login</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Form */}
+          <div className="p-8 md:p-12">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Seller Registration</h2>
+              <p className="text-gray-600">Create your seller account</p>
+            </div>
+
+            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">🔒</span>
+                <div>
+                  <h3 className="font-semibold text-green-900 mb-1">Passwordless Registration</h3>
+                  <p className="text-sm text-green-700">
+                    No password needed - secure cryptographic authentication
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="fname" className="block text-sm font-semibold text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    id="fname"
+                    name="fname"
+                    type="text"
+                    value={formData.fname}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lname" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    id="lname"
+                    name="lname"
+                    type="text"
+                    value={formData.lname}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="businessName" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Business Name
+                </label>
+                <input
+                  id="businessName"
+                  name="businessName"
+                  type="text"
+                  value={formData.businessName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+              >
+                {loading ? 'Creating Account...' : '🚀 Register as Seller'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                Already a seller?{' '}
+                <a href="/sellerLogin" className="text-orange-600 hover:text-orange-700 font-semibold">
+                  Login here
+                </a>
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default SignUpSeller;
+export default SellerSignup;

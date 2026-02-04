@@ -564,10 +564,28 @@ export const VoiceProvider = ({ children }) => {
 
   const voiceResponse = (text) => {
     if (typeof window !== 'undefined' && speech) {
+      // Stop listening while speaking to prevent feedback loop
+      const wasListening = listening;
+      if (wasListening) {
+        console.log('🔇 Pausing listening during voice response');
+        SpeechRecognition.stopListening();
+      }
+
       speech.text = text;
       speech.rate = 1;
       speech.pitch = 1;
       speech.volume = 1;
+      
+      // Resume listening after speech ends
+      speech.onend = () => {
+        if (wasListening) {
+          console.log('🔊 Resuming listening after voice response');
+          setTimeout(() => {
+            SpeechRecognition.startListening({ continuous: true });
+          }, 500); // Small delay to prevent picking up tail end of speech
+        }
+      };
+
       window.speechSynthesis.cancel(); // Cancel any ongoing speech
       window.speechSynthesis.speak(speech);
       console.log('Voice Response:', text);

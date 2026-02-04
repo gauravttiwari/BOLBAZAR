@@ -1,14 +1,22 @@
 "use client";
 import useSellerContext from "@/context/SellerContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 const ManageProduct = () => {
   const [productList, setProductList] = useState([]);
   const { currentSeller } = useSellerContext();
+  const router = useRouter();
 
   const fetchProductData = () => {
+    if (!currentSeller || !currentSeller.token) {
+      console.log("No seller logged in, redirecting to login...");
+      router.push("/sellerLogin");
+      return;
+    }
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getbyseller`, {
       headers: {
         "x-auth-token": currentSeller.token,
@@ -29,7 +37,7 @@ const ManageProduct = () => {
 
   useEffect(() => {
     fetchProductData();
-  }, []);
+  }, [currentSeller]);
 
   const deleteProduct = (id) => {
     fetch("http://localhost:5000/product/delete/" + id, { method: "DELETE" })

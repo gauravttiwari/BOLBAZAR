@@ -11,6 +11,7 @@ const utilRouter = require('./routers/utilRouter');
 const reviewRouter = require('./routers/reviewRouter');
 const orderRouter = require('./routers/orderRouter');
 const feedbackRouter = require('./routers/feedbackRouter');
+const authRouter = require('./routers/authRouter');
 
 const cors = require('cors');
 const app = express();
@@ -36,6 +37,7 @@ app.use('/contact', contactRouter);
 app.use('/util', utilRouter);
 app.use('/order', orderRouter);
 app.use('/feedback', feedbackRouter);
+app.use('/api/passwordless-auth', authRouter);
 
 app.use(express.static('./static/uploads'));
 
