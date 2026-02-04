@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config();
+require('./connection'); // Connect to MongoDB
 
 const productRouter = require('./routers/productRouter');
 const userRouter = require('./routers/userRouter');

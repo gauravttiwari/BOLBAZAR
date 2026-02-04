@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const url = process.env.MONGODB_URI || "mongodb+srv://harshit2703:harshit2703@cluster0.fe8jpcl.mongodb.net/mydatabase?retryWrites=true&w=majority&appName=Cluster0"
+const url = process.env.MONGODB_URI || "mongodb+srv://bolbazarmart_db_user:b22ig6dl5rFzf0Cu@bolbazarmart.bukzplf.mongodb.net/?appName=bolbazarmart"
 
 mongoose.connect(url)
 .then((result)=>{
