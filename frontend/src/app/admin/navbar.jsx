@@ -8,7 +8,7 @@ const AdminNavbar = () => {
         <div className="flex flex-wrap place-items-center h-46  ">
           <section className="relative mx-auto">
             {/* navbar */}
-            <nav className="flex justify-between  text-white w-screen bg-[#1E2852] ">
+            <nav className="flex justify-between  text-white w-screen bg-emerald-600 ">
               <div className="px-5 xl:px-12 py-2 flex w-full items-center ">
                 <a className="text-3xl font-bold font-heading" href="#">
                   <div className=" ">

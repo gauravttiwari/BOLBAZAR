@@ -8,9 +8,19 @@ require('dotenv').config();
 
 router.post('/add', async (req, res) => {
     try {
-        // Hash password before saving
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        const userData = { ...req.body, password: hashedPassword };
+        // Check if email already exists
+        const existingUser = await Model.findOne({ email: req.body.email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email already registered' });
+        }
+
+        let userData = { ...req.body };
+        
+        // Hash password if provided
+        if (req.body.password) {
+            const hashedPassword = await bcrypt.hash(req.body.password, 10);
+            userData.password = hashedPassword;
+        }
         
         const result = await new Model(userData).save();
         
@@ -91,6 +101,14 @@ router.post('/authenticate', async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
+
+        // Check if user has a password set
+        if (!user.password) {
+            return res.status(401).json({ 
+                message: 'This account uses passwordless login. Please sign up again with a password or use passwordless login.',
+                noPassword: true 
+            });
+        }
         
         // Compare password with hashed password
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -112,7 +130,7 @@ router.post('/authenticate', async (req, res) => {
                     console.error('Token creation error:', err);
                     return res.status(500).json({ message: 'Error creating token' });
                 }
-                res.status(200).json({ token, fname, lname, email });
+                res.status(200).json({ _id, token, fname, lname, email });
             }
         );
     } catch (err) {

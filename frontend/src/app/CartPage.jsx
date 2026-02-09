@@ -21,7 +21,7 @@ const CartPage = () => {
       <div className="text-center p-4">
         <h3 className="text-xl font-semibold mb-2">Your Cart is Currently Empty!</h3>
         <p className="text-gray-500 mb-4">Before proceed to checkout you must add some products to your shopping cart. <br />You will find a lot of interesting products on our "Product" page.</p>
-        <Link className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full inline-block" onClick={() => setCartOpen(false)} href={"/productView"}>Return To Shop</Link>
+        <Link className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-full inline-block" onClick={() => setCartOpen(false)} href={"/productView"}>Return To Shop</Link>
       </div>
     );
     return cartItems.map((item) => (
@@ -122,7 +122,7 @@ const CartPage = () => {
 
                     <button className="bg-red-600 w-full hover:bg-red-700 rounded py-2 text-white mb-2" onClick={() => clearCart()}> Clear Cart</button>
                     <Link href='/user/checkout'>
-                      <button className="bg-blue-500 text-white hover:bg-blue-600 w-full py-2 rounded" onClick={() => setCartOpen(false)}>Proceed to Pay</button>
+                      <button className="bg-primary text-white hover:bg-primary-dark w-full py-2 rounded" onClick={() => setCartOpen(false)}>Proceed to Pay</button>
                     </Link>
                     <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
                       <p>

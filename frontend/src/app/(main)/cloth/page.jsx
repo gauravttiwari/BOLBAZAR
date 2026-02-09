@@ -51,7 +51,7 @@ const Showpiece = () => {
     return product.map((product) => (
       <>
         <div className="">
-          <div className="relative m-10  flex w-full max-w-xs flex-col overflow-hidden rounded-lg border border-gray-100 bg-purple-50 shadow-md">
+          <div className="relative m-10  flex w-full max-w-xs flex-col overflow-hidden rounded-lg border border-gray-100 bg-emerald-50 shadow-md">
             <Link
               className="relative mx-3 mt-3 flex h-60 overflow-hidden  rounded-xl"
               href={"/productDetail/" + product._id}

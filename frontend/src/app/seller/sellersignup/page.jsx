@@ -61,15 +61,15 @@ const SellerSignup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-50 py-8">
       <div className="w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="grid md:grid-cols-2">
           {/* Left Side */}
-          <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-orange-500 to-red-500 p-8">
+          <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-600 p-8">
             <div className="text-center">
               <div className="text-6xl mb-4">🛍️</div>
               <h2 className="text-3xl font-bold text-white mb-4">Start Selling!</h2>
-              <p className="text-orange-100 text-lg mb-6">
+              <p className="text-emerald-100 text-lg mb-6">
                 Join thousands of sellers on BolBazar
               </p>
               <div className="space-y-3 text-left bg-white/10 p-6 rounded-lg backdrop-blur-sm">
@@ -151,7 +151,7 @@ const SellerSignup = () => {
                   value={formData.businessName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-900 bg-white"
                 />
               </div>
 
@@ -166,7 +166,7 @@ const SellerSignup = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-900 bg-white"
                 />
               </div>
 
@@ -181,14 +181,14 @@ const SellerSignup = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-900 bg-white"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
               >
                 {loading ? 'Creating Account...' : '🚀 Register as Seller'}
               </button>
@@ -197,7 +197,7 @@ const SellerSignup = () => {
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Already a seller?{' '}
-                <a href="/sellerLogin" className="text-orange-600 hover:text-orange-700 font-semibold">
+                <a href="/sellerLogin" className="text-emerald-600 hover:text-emerald-700 font-semibold">
                   Login here
                 </a>
               </p>

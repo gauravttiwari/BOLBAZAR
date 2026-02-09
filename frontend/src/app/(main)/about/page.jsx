@@ -58,14 +58,14 @@ const About = () => {
   return (
   <div>
     <div className="mt-10 flex items-center justify-center gap-10 bg-white-800 ">
-      <div className=" max-w-2xl p-8 bg-purple-50 shadow-md rounded-md">
+      <div className=" max-w-2xl p-8 bg-emerald-50 shadow-md rounded-md">
         <h1 className="text-2xl font-bold mb-4">Voice-activated shopping: making your experience more intuitive and effortless..</h1>
         <p className="mb-4">
         "Welcome to BOLBAZAR, the innovative platform where you can explore and purchase a vast collection of digital content using just your voice!"
         </p>
         
       </div>
-      <div className="basis-[40%] py-5 px-5 bg-purple-50">
+      <div className="basis-[40%] py-5 px-5 bg-emerald-50">
         <img src="https://www.pngall.com/wp-content/uploads/8/Super-Market-PNG-Picture.png" alt="" class="w-full" />
       </div>
     </div>
@@ -123,7 +123,7 @@ const About = () => {
           <div className="container w-full px-4">
             <div className="flex flex-wrap justify-center">
               <div className="w-full lg:w-6/12 px-4">
-                <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded-lg bg-purple-50">
+                <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded-lg bg-emerald-50">
                   <div className="flex-auto p-5 lg:p-10">
                     <h4 className="text-2xl mb-4 text-black font-semibold">
                       Have a suggestion?

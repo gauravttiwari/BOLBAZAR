@@ -105,7 +105,7 @@ const ResetPassword = () => {
             <img className="w-12 h-12 mr-2" src="logo.png" alt="logo" />
             BOLBAZAR
           </a>
-          <div className="w-full p-6 bg-purple-50 rounded-lg shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+          <div className="w-full p-6 bg-emerald-50 rounded-lg shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
             <h2 className="mb-1 text-xl justify-center text-center font-bold leading-tight tracking-tight text-black md:text-2xl dark:text-white">
               Change Password
             </h2>
@@ -129,7 +129,7 @@ const ResetPassword = () => {
               <button
                 type="Submit"
                 onClick={sendOTP}
-                className="mt-2 radius-xl bg-[#FC9B3C] border border-[#FC9B3C] w-1/2 rounded-lg"
+                className="mt-2 radius-xl bg-emerald-500 border border-emerald-500 w-1/2 rounded-lg"
               >
                 Send OTP
               </button>
@@ -146,7 +146,7 @@ const ResetPassword = () => {
             <div>
               <button
                 onClick={verifyOTP}
-                className="mt-2 radius-xl bg-[#FC9B3C] border border-[#FC9B3C] w-1/2 rounded-lg"
+                className="mt-2 radius-xl bg-emerald-500 border border-emerald-500 w-1/2 rounded-lg"
               >
                 Verify OTP
               </button>
@@ -212,7 +212,7 @@ const ResetPassword = () => {
                 </div>
                 <button
                   type="submit"
-                  className="w-full text-white bg-[#FC9B3C]  border border-[#FC9B3C] hover:text-white focus:ring-4 focus:outline-none focus:ring-[#FC9B3C] font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                  className="w-full text-white bg-emerald-500  border border-emerald-500 hover:text-white focus:ring-4 focus:outline-none focus:ring-emerald-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
                 >
                   Reset passwod
                 </button>

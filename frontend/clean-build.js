@@ -11,8 +11,8 @@ function cleanNextBuild() {
       fs.rmSync(nextDir, { recursive: true, force: true });
       console.log('✅ .next directory cleaned successfully');
     } catch (error) {
-      console.error('❌ Error cleaning .next:', error.message);
-      process.exit(1);
+      console.warn('⚠️  Could not clean .next directory (files may be locked):', error.message);
+      console.log('ℹ️  Continuing anyway...');
     }
   } else {
     console.log('ℹ️  .next directory does not exist (already clean)');

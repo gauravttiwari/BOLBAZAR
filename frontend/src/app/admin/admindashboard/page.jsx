@@ -7,7 +7,7 @@ const AdminDashboard = () => {
       <>
         {/* component */}
         <div className="min-h-screen bg-#F5F5F5">
-          <aside className="bg-gradient-to-br from-[#1E2852] to-[#1E2852] -translate-x-80 fixed inset-0 z-50 ms-4 mt-16 h-[calc(100vh-32px)] w-72 rounded-xl transition-transform duration-300 xl:translate-x-0">
+          <aside className="bg-gradient-to-br from-emerald-700 to-emerald-800 -translate-x-80 fixed inset-0 z-50 ms-4 mt-16 h-[calc(100vh-32px)] w-72 rounded-xl transition-transform duration-300 xl:translate-x-0">
             <div className="relative border-b border-white/20">
               <a className="flex items-center gap-4 py-6 px-8" href="#/">
                 <h6 className="block antialiased tracking-normal font-sans text-base font-semibold leading-relaxed text-white">
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
                 <li>
                   <a aria-current="page" className="active" href="#">
                     <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg bg-gradient-to-tr from-[#FC9B3C] to-[#FC9B3C] text-white shadow-md shadow-[#FC9B3C]-500/20 hover:shadow-lg hover:shadow-green-500/40 active:opacity-[0.85] w-full flex items-center gap-4 px-4 capitalize"
+                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-green-500/40 active:opacity-[0.85] w-full flex items-center gap-4 px-4 capitalize"
                       type="button"
                     >
                       <svg
@@ -368,7 +368,7 @@ const AdminDashboard = () => {
             <div className="mt-12">
               <div className="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-4">
                 <div className="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 shadow-md">
-                  <div className="bg-clip-border mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-blue-600 to-blue-400 text-white shadow-blue-500/40 shadow-lg absolute -mt-4 grid h-16 w-16 place-items-center">
+                  <div className="bg-clip-border mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white shadow-emerald-500/40 shadow-lg absolute -mt-4 grid h-16 w-16 place-items-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"

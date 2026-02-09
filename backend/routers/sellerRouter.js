@@ -197,6 +197,36 @@ router.delete('/delete/:id',(req,res)=>{
     });
 });
 
+// Get seller by ID
+router.get('/getbyid/:id', (req, res) => {
+    Model.findById(req.params.id)
+        .then((result) => {
+            if (result) {
+                res.status(200).json(result);
+            } else {
+                res.status(404).json({ message: 'Seller not found' });
+            }
+        }).catch((err) => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
+
+// Update seller profile
+router.put('/update/:id', (req, res) => {
+    Model.findByIdAndUpdate(req.params.id, req.body, { new: true })
+        .then((result) => {
+            if (result) {
+                res.status(200).json(result);
+            } else {
+                res.status(404).json({ message: 'Seller not found' });
+            }
+        }).catch((err) => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
+
 router.post('/authenticate', (req, res) => {
     console.log(req.body);
     Model.findOne(req.body)

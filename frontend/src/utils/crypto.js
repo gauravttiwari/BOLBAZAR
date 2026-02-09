@@ -23,14 +23,44 @@ export async function exportPublicKey(publicKey) {
   return `-----BEGIN PUBLIC KEY-----\n${exportedAsBase64}\n-----END PUBLIC KEY-----`;
 }
 
-// Store private key in IndexedDB
-export async function storePrivateKey(privateKey, email) {
+// Initialize IndexedDB with proper object stores
+async function initDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('BolBazarAuth', 1);
+    const request = indexedDB.open('BolBazarAuth', 2);
 
     request.onerror = () => reject(request.error);
-    request.onsuccess = async () => {
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('keys')) {
+        db.createObjectStore('keys', { keyPath: 'email' });
+      }
+    };
+
+    request.onsuccess = () => {
       const db = request.result;
+      // Check if the object store exists, if not we need to recreate
+      if (!db.objectStoreNames.contains('keys')) {
+        db.close();
+        // Delete and recreate database with proper structure
+        const deleteRequest = indexedDB.deleteDatabase('BolBazarAuth');
+        deleteRequest.onsuccess = () => {
+          initDatabase().then(resolve).catch(reject);
+        };
+        deleteRequest.onerror = () => reject(deleteRequest.error);
+      } else {
+        resolve(db);
+      }
+    };
+  });
+}
+
+// Store private key in IndexedDB
+export async function storePrivateKey(privateKey, email) {
+  const db = await initDatabase();
+  
+  return new Promise(async (resolve, reject) => {
+    try {
       const transaction = db.transaction(['keys'], 'readwrite');
       const store = transaction.objectStore('keys');
       
@@ -39,25 +69,18 @@ export async function storePrivateKey(privateKey, email) {
       
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('keys')) {
-        db.createObjectStore('keys', { keyPath: 'email' });
-      }
-    };
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
 // Retrieve private key from IndexedDB
 export async function getPrivateKey(email) {
+  const db = await initDatabase();
+  
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('BolBazarAuth', 1);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
+    try {
       const transaction = db.transaction(['keys'], 'readonly');
       const store = transaction.objectStore('keys');
       const getRequest = store.get(email);
@@ -82,7 +105,9 @@ export async function getPrivateKey(email) {
       };
 
       getRequest.onerror = () => reject(getRequest.error);
-    };
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 

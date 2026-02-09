@@ -46,6 +46,8 @@ export const API_ENDPOINTS = {
     GET_ALL: `${API_BASE_URL}/order/getall`,
     GET_BY_USER: (id) => `${API_BASE_URL}/order/getbyuser/${id}`,
     GET_BY_ID: (id) => `${API_BASE_URL}/order/getbyid/${id}`,
+    GET_BY_SELLER: (id) => `${API_BASE_URL}/order/getbyseller/${id}`,
+    SELLER_STATS: (id) => `${API_BASE_URL}/order/seller-stats/${id}`,
     UPDATE: (id) => `${API_BASE_URL}/order/update/${id}`,
   },
 

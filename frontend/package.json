@@ -29,6 +29,7 @@
     "react-speech-recognition": "^3.10.0",
     "react-star-ratings": "^2.3.0",
     "react-stripe-js": "^1.1.5",
+    "recharts": "^3.7.0",
     "regenerator-runtime": "^0.14.1",
     "string-similarity-js": "^2.1.4",
     "swiper": "^11.1.1",

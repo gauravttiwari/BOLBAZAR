@@ -9,6 +9,7 @@ export const SellerProvider = ({children}) => {
   // Initialize state without accessing sessionStorage
   const [currentSeller, setCurrentSeller] = useState(null);
   const [sellerLoggedIn, setSellerLoggedIn] = useState(false);
+  const [sellerReady, setSellerReady] = useState(false);
 
   // Load seller from sessionStorage only on client side
   useEffect(() => {
@@ -16,15 +17,18 @@ export const SellerProvider = ({children}) => {
       const sellerData = sessionStorage.getItem("seller");
       if (sellerData) {
         try {
-          const parsedSeller = JSON.parse(sellerData);
-          setCurrentSeller(parsedSeller);
-          setSellerLoggedIn(parsedSeller !== null);
+          const parsedData = JSON.parse(sellerData);
+          // Handle both old format { message, token, seller: {...} } and new format { _id, fname, ... }
+          const seller = parsedData.seller || parsedData;
+          setCurrentSeller(seller);
+          setSellerLoggedIn(seller !== null && seller._id);
         } catch (error) {
           console.error("Error parsing seller data from sessionStorage:", error);
           setCurrentSeller(null);
           setSellerLoggedIn(false);
         }
       }
+      setSellerReady(true);
     }
   }, []);
 
@@ -55,6 +59,7 @@ export const SellerProvider = ({children}) => {
         setCurrentSeller,
         sellerLoggedIn,
         setSellerLoggedIn,
+        sellerReady,
         logout,
       }}
     >

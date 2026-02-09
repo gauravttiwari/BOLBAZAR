@@ -37,12 +37,12 @@ const Contact = () => {
     <>
       <div className="max-w-screen-lg mx-auto p-5">
         <div className="grid grid-cols-1 md:grid-cols-12 border">
-          <div className="bg-[#1E2852] md:col-span-4 p-10 text-white">
+          <div className="bg-emerald-700 md:col-span-4 p-10 text-white">
             <p className="mt-4 text-sm leading-10 font-regular uppercase">
               Contact
             </p>
             <h3 className="text-3xl sm:text-4xl leading-normal font-extrabold tracking-tight">
-              Get In <span className="text-indigo-600">Touch</span>
+              Get In <span className="text-emerald-600">Touch</span>
             </h3>
             <p className="mt-4 leading-7 text-gray-200">
               Need help or have a question? We're here for you! Just shoot us a
@@ -51,7 +51,7 @@ const Contact = () => {
             </p>
             <div className="flex items-center mt-5">
               <svg
-                className="h-6 mr-2 text-indigo-600"
+                className="h-6 mr-2 text-emerald-600"
                 fill="currentColor"
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,7 @@ const Contact = () => {
             </div>
             <div className="flex items-center mt-5">
               <svg
-                className="h-6 mr-2 text-indigo-600"
+                className="h-6 mr-2 text-emerald-600"
                 fill="currentColor"
                 version="1.1"
                 id="Capa_1"
@@ -126,7 +126,7 @@ const Contact = () => {
             </div>
             <div className="flex items-center mt-5">
               <svg
-                className="h-6 mr-2 text-indigo-600"
+                className="h-6 mr-2 text-emerald-600"
                 fill="currentColor"
                 version="1.1"
                 id="Capa_1"
@@ -152,7 +152,7 @@ const Contact = () => {
               <span className="text-sm">24/7</span>
             </div>
           </div>
-          <form className="md:col-span-8 p-10 bg-purple-50" onSubmit={addContactForm.handleSubmit}>
+          <form className="md:col-span-8 p-10 bg-emerald-50" onSubmit={addContactForm.handleSubmit}>
             <div className="flex flex-wrap -mx-3 mb-6">
               <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                 <label

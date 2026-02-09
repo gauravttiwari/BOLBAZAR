@@ -1,427 +1,350 @@
 "use client";
 import Navbar from "./(main)/navbar";
 import Footer from "./(main)/footer";
-import React, { useRef, useState } from "react";
-// Import Swiper React components
+import React, { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-
-// Import Swiper styles
 import "swiper/css";
 import 'swiper/css/pagination';
-import "swiper/css/navigation";
-import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css/navigation';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import Link from "next/link";
+import ProductCard from "@/components/ProductCard";
+import CategoryCard from "@/components/CategoryCard";
 
+// Category data
+const categories = [
+  { name: "Electronics", icon: "📱", href: "/productView?category=electronics" },
+  { name: "Fashion", icon: "👕", href: "/productView?category=fashion" },
+  { name: "Home & Furniture", icon: "🏠", href: "/productView?category=furniture" },
+  { name: "Appliances", icon: "🔌", href: "/productView?category=appliances" },
+  { name: "Grocery", icon: "🛒", href: "/productView?category=grocery" },
+  { name: "Beauty", icon: "💄", href: "/productView?category=beauty" },
+  { name: "Sports", icon: "⚽", href: "/productView?category=sports" },
+  { name: "Books", icon: "📚", href: "/productView?category=books" },
+];
+
+// Banner data
+const banners = [
+  {
+    image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=400&fit=crop",
+    title: "Big Fashion Sale",
+    subtitle: "Up to 70% Off on Top Brands",
+    cta: "Shop Now",
+    href: "/productView?category=fashion",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1200&h=400&fit=crop",
+    title: "Electronics Festival",
+    subtitle: "Best Deals on Gadgets",
+    cta: "Explore",
+    href: "/productView?category=electronics",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=400&fit=crop",
+    title: "Home Makeover",
+    subtitle: "Transform Your Space",
+    cta: "Discover",
+    href: "/productView?category=furniture",
+  },
+];
+
+// Features data
+const features = [
+  { icon: "🚚", title: "Free Delivery", description: "On orders above ₹499" },
+  { icon: "🔄", title: "Easy Returns", description: "10 days return policy" },
+  { icon: "🔒", title: "Secure Payment", description: "100% secure checkout" },
+  { icon: "🎧", title: "24/7 Support", description: "Dedicated support" },
+];
 
 const Home = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/product/getall');
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <>
-      
+    <div className="min-h-screen bg-surface">
       <Navbar />
       
-      <>
-        <section>
+      {/* Hero Banner Carousel */}
+      <section className="relative">
         <Swiper
-        spaceBetween={30}
-        centeredSlides={true}
-        autoplay={{
-          delay: 2500,
-          disableOnInteraction: false,
-        }}
-        pagination={{
-          clickable: true,
-        }}
-       
-        modules={[Autoplay, Pagination]}
-        className="mySwiper h-96 w-full "
-      >
-        <SwiperSlide style={{backgroundSize:"cover"}} className="bg-[url('https://wallpaperaccess.com/full/1448067.jpg')]"></SwiperSlide>
-
-        <SwiperSlide  style={{backgroundSize:"cover"}} className="bg-[url('https://cdn.thecoolist.com/wp-content/uploads/2021/05/Men-clothing-websites.jpg')]"></SwiperSlide>
-        <SwiperSlide style={{backgroundSize:"cover"}} className=" bg-[url('https://wallpaperaccess.com/full/5633830.jpg')]"></SwiperSlide>
-        
-      </Swiper>
-        </section>
-
-        <section>
-          <div className="w-[1200] grid lg:grid-cols-6 bg-[#1E2852] mx-auto text-white text-center py-5">
-            
-          </div>
-        </section>
-        <div className="container pt-5 mx-auto px-6">
-        <div
-          className="h-80 rounded-md overflow-hidden bg-cover bg-center"
-          style={{
-            backgroundImage:
-              'url("https://tennisqa.com/wp-content/uploads/2023/02/JVTXrkBQt5asxTkDirSbWd-scaled.jpg")'
+          spaceBetween={0}
+          centeredSlides={true}
+          autoplay={{
+            delay: 4000,
+            disableOnInteraction: false,
           }}
+          pagination={{
+            clickable: true,
+          }}
+          navigation={true}
+          modules={[Autoplay, Pagination, Navigation]}
+          className="w-full h-[200px] sm:h-[300px] lg:h-[400px]"
         >
-          <div className="bg-gray-900 bg-opacity-50 flex items-center h-full">
-            <div className="px-10 max-w-xl">
-              <h2 className="text-2xl text-white font-semibold">Sport Shoes</h2>
-              <p className="mt-2 text-gray-400">
-                Lorem ipsum dolor, sit amet consectetur adipisicing elit. Tempore
-                facere provident molestias ipsam sint voluptatum pariatur.
-              </p>
-              <Link href={"/productView"} className="flex items-center mt-4 px-3 py-2 bg-blue-600 text-white text-sm uppercase font-medium rounded hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                <span>Shop Now</span>
-                <svg
-                  className="h-5 w-5 mx-2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {banners.map((banner, idx) => (
+            <SwiperSlide key={idx}>
+              <Link href={banner.href}>
+                <div 
+                  className="relative h-full bg-cover bg-center"
+                  style={{ backgroundImage: `url('${banner.image}')` }}
                 >
-                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="section-container">
+                      <div className="max-w-lg text-white">
+                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">{banner.title}</h2>
+                        <p className="text-sm sm:text-lg lg:text-xl text-gray-200 mb-4 sm:mb-6">{banner.subtitle}</p>
+                        <span className="btn-secondary inline-block">
+                          {banner.cta} →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </section>
+
+      {/* Categories Section */}
+      <section className="py-4 bg-white shadow-sm">
+        <div className="section-container">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {categories.map((category, idx) => (
+              <CategoryCard key={idx} category={category} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Bar */}
+      <section className="py-4 bg-primary text-white">
+        <div className="section-container">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {features.map((feature, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <span className="text-2xl">{feature.icon}</span>
+                <div>
+                  <p className="font-medium text-sm">{feature.title}</p>
+                  <p className="text-xs text-blue-200">{feature.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Deal of the Day */}
+      <section className="py-6">
+        <div className="section-container">
+          <div className="bg-white rounded-sm p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-gray-800">Deal of the Day</h2>
+                <div className="hidden sm:flex items-center gap-1 text-sm">
+                  <span className="bg-red-500 text-white px-2 py-1 rounded-sm font-mono">22</span>
+                  <span className="text-gray-400">:</span>
+                  <span className="bg-red-500 text-white px-2 py-1 rounded-sm font-mono">15</span>
+                  <span className="text-gray-400">:</span>
+                  <span className="bg-red-500 text-white px-2 py-1 rounded-sm font-mono">48</span>
+                </div>
+              </div>
+              <Link href="/productView" className="text-primary text-sm font-medium hover:underline">
+                View All →
               </Link>
             </div>
+            
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, idx) => (
+                  <div key={idx} className="animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-sm mb-3" />
+                    <div className="h-4 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {products.slice(0, 5).map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        <div className="md:flex mt-8 md:-mx-4">
-          <div
-            className="w-full h-64 md:mx-4 rounded-md overflow-hidden bg-cover bg-center md:w-1/2"
-            style={{
-              backgroundImage:
-                'url("https://media.casioindiashop.com/assets/category-trending-images/desktop/18.webp")'
-            }}
-          >
-            <div className="bg-gray-900 bg-opacity-50 flex items-center h-full">
-              <div className="px-10 max-w-xl">
-                <h2 className="text-2xl text-white font-semibold">Watches</h2>
-                <p className="mt-2 text-gray-400">
-                  Lorem ipsum dolor, sit amet consectetur adipisicing elit. Tempore
-                  facere provident molestias ipsam sint voluptatum pariatur.
-                </p>
-                <button className="flex items-center mt-4 text-white text-sm uppercase font-medium rounded hover:underline focus:outline-none">
-                  <span>Shop Now</span>
-                  <svg
-                    className="h-5 w-5 mx-2"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div
-            className="w-full h-64 mt-8 md:mx-4 rounded-md overflow-hidden bg-cover bg-center md:mt-0 md:w-1/2"
-            style={{
-              backgroundImage:
-                'url("https://www.modernquests.com/cdn/shop/files/outback-minimal-leather-wallet-tan-6.jpg?v=1690047623")'
-            }}
-          >
-            <div className="bg-gray-900 bg-opacity-50 flex items-center h-full">
-              <div className="px-10 max-w-xl">
-                <h2 className="text-2xl text-white font-semibold">Wallets</h2>
-                <p className="mt-2 text-gray-400">
-                  Lorem ipsum dolor, sit amet consectetur adipisicing elit. Tempore
-                  facere provident molestias ipsam sint voluptatum pariatur.
-                </p>
-                <button className="flex items-center mt-4 text-white text-sm uppercase font-medium rounded hover:underline focus:outline-none">
-                  <span>Shop Now</span>
-                  <svg
-                    className="h-5 w-5 mx-2"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-16">
-          <h3 className="text-gray-600 text-2xl font-medium">Fashions</h3>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=376&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Chanel</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1544441893-675973e31985?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Man Mix</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1532667449560-72a95c8d381b?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Classic watch</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1590664863685-a99ef05e9f61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=345&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">woman mix</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-16">
-          <h3 className="text-gray-600 text-2xl font-medium">Fashions</h3>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1563170351-be82bc888aa4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=376&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Chanel</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1544441893-675973e31985?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Man Mix</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1532667449560-72a95c8d381b?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">Classic watch</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto rounded-md shadow-md overflow-hidden">
-              <div
-                className="flex items-end justify-end h-56 w-full bg-cover"
-                style={{
-                  backgroundImage:
-                    'url("https://images.unsplash.com/photo-1590664863685-a99ef05e9f61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=345&q=80")'
-                }}
-              >
-                <button className="p-2 rounded-full bg-blue-600 text-white mx-5 -mb-4 hover:bg-blue-500 focus:outline-none focus:bg-blue-500">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <h3 className="text-gray-700 uppercase">woman mix</h3>
-                <span className="text-gray-500 mt-2">$12</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
+      {/* Promotional Banners */}
+      <section className="py-4">
+        <div className="section-container">
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link href="/productView?category=electronics">
+              <div className="relative h-48 rounded-sm overflow-hidden group">
+                <img 
+                  src="https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600&h=300&fit=crop"
+                  alt="Electronics"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center">
+                  <div className="p-6 text-white">
+                    <h3 className="text-2xl font-bold mb-2">Electronics Sale</h3>
+                    <p className="text-gray-200 mb-3">Up to 50% off on top brands</p>
+                    <span className="text-secondary font-medium">Shop Now →</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+            
+            <Link href="/productView?category=fashion">
+              <div className="relative h-48 rounded-sm overflow-hidden group">
+                <img 
+                  src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=300&fit=crop"
+                  alt="Fashion"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center">
+                  <div className="p-6 text-white">
+                    <h3 className="text-2xl font-bold mb-2">Fashion Week</h3>
+                    <p className="text-gray-200 mb-3">New arrivals at best prices</p>
+                    <span className="text-secondary font-medium">Explore →</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        {/* <section>
-          <div className="container justify-center items-center h-100vh  px-14 py-5">
-            <div className="text-center ">
-              <h1> Big Brand Party</h1>
+      {/* Trending Products */}
+      <section className="py-6">
+        <div className="section-container">
+          <div className="bg-white rounded-sm p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Trending Now</h2>
+              <Link href="/productView" className="text-primary text-sm font-medium hover:underline">
+                View All →
+              </Link>
             </div>
-            <div className="grid lg:grid-rows-4 mt-3">
-              <div className="w-[1200] grid lg:grid-cols-6 items-center justify-center mt-3 ">
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
+            
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {[...Array(6)].map((_, idx) => (
+                  <div key={idx} className="animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-sm mb-3" />
+                    <div className="h-4 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                ))}
               </div>
-              <div className="w-[1200] grid lg:grid-cols-6 items-center justify-center mt-3">
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {products.slice(0, 6).map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
               </div>
-              <div className="w-[1200] grid lg:grid-cols-6 items-center justify-center mt-3">
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-              </div>
-              <div className="w-[1200] grid lg:grid-cols-6 items-center justify-center mt-3">
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover bg-[url('https://imgmedia.lbb.in/media/2019/04/5caf784d6e20a824c4cd7526_1555003469154.jpg')]"></div>
-                <div className="card w-56 h-60 me-3 bg-cover  bg-[url('https://lh3.googleusercontent.com/-w-vj8zhs9sk/WtsrbrEnwUI/AAAAAAAAdXU/BcxGl8WGWr04BgPpJzzrrjNnBveAWOOVQCHMYCw/s0/african-women-fashion-styles0951.jpg')]"></div>
-              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Shop by Category */}
+      <section className="py-6">
+        <div className="section-container">
+          <div className="bg-white rounded-sm p-4 shadow-card">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Shop by Category</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+              {categories.map((category, idx) => (
+                <Link key={idx} href={category.href}>
+                  <div className="text-center group cursor-pointer">
+                    <div className="w-20 h-20 mx-auto mb-2 rounded-full bg-surface flex items-center justify-center text-4xl group-hover:bg-primary/10 transition-colors">
+                      {category.icon}
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                      {category.name}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
-        </section> */}
-        
-      
-      </>
-      <Footer/>
-      
-    </>
-    
+        </div>
+      </section>
+
+      {/* New Arrivals */}
+      <section className="py-6">
+        <div className="section-container">
+          <div className="bg-white rounded-sm p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">New Arrivals</h2>
+              <Link href="/productView" className="text-primary text-sm font-medium hover:underline">
+                View All →
+              </Link>
+            </div>
+            
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, idx) => (
+                  <div key={idx} className="animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-sm mb-3" />
+                    <div className="h-4 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {products.slice(0, 4).map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-12 bg-primary">
+        <div className="section-container">
+          <div className="text-center text-white max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">Subscribe & Save</h2>
+            <p className="text-blue-200 mb-6">Get exclusive offers and updates delivered straight to your inbox</p>
+            <form className="flex flex-col sm:flex-row gap-3 justify-center">
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                className="px-4 py-3 rounded-sm text-gray-800 w-full sm:w-96 focus:outline-none focus:ring-2 focus:ring-secondary"
+              />
+              <button type="submit" className="btn-secondary whitespace-nowrap">
+                Subscribe Now
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 };
 
 export default Home;
+

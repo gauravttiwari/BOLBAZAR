@@ -5,16 +5,51 @@ import toast from "react-hot-toast";
 import { passwordlessLogin } from "@/utils/passwordlessAuth";
 import useAppContext from "@/context/AppContext";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 const Login = () => {
   const router = useRouter();
   const { setLoggedIn, setCurrentUser } = useAppContext();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usePassword, setUsePassword] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // Traditional password login
+  const handlePasswordLogin = async () => {
+    try {
+      const response = await fetch(`${API_URL}/user/authenticate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Invalid email or password");
+      }
+
+      const data = await response.json();
+      toast.success("Login Successful!");
+      
+      const userData = { 
+        _id: data._id, 
+        fname: data.fname, 
+        lname: data.lname, 
+        email: data.email, 
+        token: data.token 
+      };
+      sessionStorage.setItem('user', JSON.stringify(userData));
+      setLoggedIn(true);
+      setCurrentUser(userData);
+      router.push("/productView");
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Passwordless login
+  const handlePasswordlessLogin = async () => {
     try {
       const data = await passwordlessLogin(email);
       toast.success("🎉 Login Successful - No Password Needed!");
@@ -23,23 +58,41 @@ const Login = () => {
       setCurrentUser(data.user);
       router.push("/productView");
     } catch (error) {
+      // If passwordless fails, show password option
+      console.error('Passwordless login error:', error);
+      setUsePassword(true);
+      throw new Error("Passwordless login not available. Please use your password.");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (usePassword) {
+        await handlePasswordLogin();
+      } else {
+        await handlePasswordlessLogin();
+      }
+    } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.message || "Login failed. Please signup first on this device.");
+      toast.error(error.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
-      <div className="w-full max-w-4xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-surface py-12">
+      <div className="w-full max-w-4xl mx-4 bg-white rounded-sm shadow-card overflow-hidden">
         <div className="grid md:grid-cols-2">
           {/* Left Side - Image */}
-          <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500 p-8">
+          <div className="hidden md:flex items-center justify-center bg-primary p-8">
             <div className="text-center">
-              <div className="text-6xl mb-4">🔐</div>
-              <h2 className="text-3xl font-bold text-white mb-4">Welcome Back!</h2>
-              <p className="text-purple-100 text-lg">
+              <div className="text-6xl mb-4">🛒</div>
+              <h2 className="text-3xl font-bold text-white mb-4">Welcome to BolBazar!</h2>
+              <p className="text-emerald-100 text-lg">
                 Login securely without passwords using modern cryptography
               </p>
             </div>
@@ -48,18 +101,23 @@ const Login = () => {
           {/* Right Side - Form */}
           <div className="p-8 md:p-12">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Login to BolBazar</h2>
-              <p className="text-gray-600">Enter your email to continue</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Login to BolBazar</h2>
+              <p className="text-gray-500">Enter your email to continue</p>
             </div>
 
             {/* Info Box */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mb-6 p-4 bg-primary/5 rounded-sm border border-primary/20">
               <div className="flex items-start">
-                <span className="text-2xl mr-3">✨</span>
+                <span className="text-2xl mr-3">{usePassword ? "🔐" : "✨"}</span>
                 <div>
-                  <h3 className="font-semibold text-blue-900 mb-1">Passwordless Login</h3>
-                  <p className="text-sm text-blue-700">
-                    No password needed! We use secure cryptographic keys stored on your device.
+                  <h3 className="font-semibold text-primary mb-1">
+                    {usePassword ? "Password Login" : "Passwordless Login"}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {usePassword 
+                      ? "Enter your email and password to continue."
+                      : "No password needed! We use secure cryptographic keys stored on your device."
+                    }
                   </p>
                 </div>
               </div>
@@ -78,15 +136,44 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="your.email@example.com"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                  className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-gray-900 bg-white"
                 />
+              </div>
+
+              {/* Password Field - shown when usePassword is true */}
+              {usePassword && (
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Enter your password"
+                    className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-gray-900 bg-white"
+                  />
+                </div>
+              )}
+
+              {/* Toggle Login Method */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setUsePassword(!usePassword)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {usePassword ? "Try passwordless login instead" : "Use password instead"}
+                </button>
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+                className="w-full bg-secondary hover:bg-secondary-dark text-white font-semibold py-3 px-6 rounded-sm shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
@@ -97,7 +184,7 @@ const Login = () => {
                     Signing in...
                   </span>
                 ) : (
-                  '🔓 Login Securely'
+                  usePassword ? '🔐 Login with Password' : '🔓 Login Securely'
                 )}
               </button>
             </form>
@@ -106,16 +193,16 @@ const Login = () => {
             <div className="mt-8 text-center space-y-3">
               <p className="text-gray-600">
                 Don't have an account?{' '}
-                <a href="/signup" className="text-purple-600 hover:text-purple-700 font-semibold">
+                <a href="/signup" className="text-primary hover:underline font-semibold">
                   Sign up here
                 </a>
               </p>
               <div className="flex justify-center space-x-4 text-sm">
-                <a href="/sellerLogin" className="text-gray-500 hover:text-purple-600">
+                <a href="/sellerLogin" className="text-gray-500 hover:text-primary">
                   Seller Login
                 </a>
                 <span className="text-gray-300">|</span>
-                <a href="/admin/login" className="text-gray-500 hover:text-purple-600">
+                <a href="/admin/login" className="text-gray-500 hover:text-primary">
                   Admin Login
                 </a>
               </div>

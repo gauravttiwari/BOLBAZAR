@@ -63,6 +63,17 @@ router.get('/getbyseller', verifyToken, (req, res) => {
         });
 });
 
+// Get products by seller ID (without token - for dashboard)
+router.get('/getbyseller/:sellerId', (req, res) => {
+    Model.find({seller : req.params.sellerId})
+        .then((result) => {
+            res.status(200).json(result);
+        }).catch((err) => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
+
 
 router.put('/update/:id', (req,res) => {
     console.log(req.body);

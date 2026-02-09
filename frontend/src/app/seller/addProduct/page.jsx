@@ -1,27 +1,30 @@
 "use client";
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-const addProductSchema = Yup.object().shape({});
-
 import toast from "react-hot-toast";
-import { useState } from "react";
+import Link from "next/link";
 import useSellerContext from "@/context/SellerContext";
+import SellerSidebar from "@/components/SellerSidebar";
 
-const Addproduct = () => {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const addProductSchema = Yup.object().shape({
+  pname: Yup.string().required("Product name is required").min(3, "Name must be at least 3 characters"),
+  pdetail: Yup.string().required("Product description is required").min(10, "Description must be at least 10 characters"),
+  pprice: Yup.number().required("Price is required").positive("Price must be positive"),
+  category: Yup.string().required("Category is required"),
+  subcategory: Yup.string().required("Subcategory is required"),
+});
+
+const AddProduct = () => {
   const router = useRouter();
-  // const [selFile, setSelFile] = useState("");
-
-  const { currentSeller } = useSellerContext();
-
-  const [features, setFeatures] = useState([
-    {
-      name: "Feature name",
-      value: "feature value",
-    },
-  ]);
-
+  const { currentSeller, sellerReady } = useSellerContext();
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
+  const [features, setFeatures] = useState([{ name: "", value: "" }]);
 
   // Categories with their subcategories
   const categoryOptions = {
@@ -35,6 +38,12 @@ const Addproduct = () => {
     "Automotive": ["Car Accessories", "Bike Accessories", "Tools", "Car Care", "Parts"]
   };
 
+  useEffect(() => {
+    if (sellerReady && !currentSeller) {
+      router.push("/sellerLogin");
+    }
+  }, [sellerReady, currentSeller, router]);
+
   const addProductForm = useFormik({
     initialValues: {
       pname: "",
@@ -43,441 +52,438 @@ const Addproduct = () => {
       category: "",
       subcategory: "",
       images: [],
-      createdAt: "",
-    },
-
-    onSubmit: async (values, action) => {
-      values.features = features;
-      console.log(values);
-      const res = await fetch("http://localhost:5000/product/add", {
-        method: "POST",
-        body: JSON.stringify(values),
-        headers: { 
-          "Content-type": "application/json",
-          "x-auth-token" : currentSeller.token
-          },
-      });
-      console.log(res.status);
-      action.resetForm();
-      if (res.status === 200) {
-        toast("Item uploaded successfully");
-        router.push('/seller/manageProduct');
-      } else {
-        toast("Something went wrong");
-      }
     },
     validationSchema: addProductSchema,
+    onSubmit: async (values, action) => {
+      if (!uploadedImage) {
+        toast.error("Please upload a product image");
+        return;
+      }
+
+      const submitData = {
+        ...values,
+        features: features.filter(f => f.name && f.value),
+        images: [uploadedImage],
+        sellerId: currentSeller._id,
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/product/add`, {
+          method: "POST",
+          body: JSON.stringify(submitData),
+          headers: {
+            "Content-type": "application/json",
+            "x-auth-token": currentSeller.token,
+          },
+        });
+
+        if (res.status === 200) {
+          toast.success("Product added successfully!");
+          action.resetForm();
+          setUploadedImage(null);
+          setFeatures([{ name: "", value: "" }]);
+          router.push("/seller/manageProduct");
+        } else {
+          toast.error("Failed to add product");
+        }
+      } catch (error) {
+        console.error("Error adding product:", error);
+        toast.error("Something went wrong");
+      }
+    },
   });
 
-  const uploadFile = (e) => {
+  const uploadFile = async (e) => {
     const file = e.target.files[0];
-    console.log(file);
+    if (!file) return;
 
+    setUploading(true);
     const fd = new FormData();
     fd.append("myfile", file);
 
-    fetch("http://localhost:5000/util/uploadfile", { method: "POST", body: fd })
-      .then((response) => {
-        if (response.status === 200) {
-          toast.success("file Uploaded");
-          response.json().then((data) => {
-            addProductForm.values.images[0] = file.name;
-          });
-        } else {
-          toast.success("some error occured");
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        toast.error("some error occured");
+    try {
+      const res = await fetch(`${API_URL}/util/uploadfile`, {
+        method: "POST",
+        body: fd,
       });
+
+      if (res.ok) {
+        setUploadedImage(file.name);
+        toast.success("Image uploaded successfully!");
+      } else {
+        toast.error("Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Error uploading image");
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const updateFeatures = (index, key, value) => {
-    let temp = features;
-    temp[index][key] = value;
-    setFeatures([...temp]);
+  const updateFeature = (index, key, value) => {
+    const updatedFeatures = [...features];
+    updatedFeatures[index][key] = value;
+    setFeatures(updatedFeatures);
   };
 
   const addFeature = () => {
     setFeatures([...features, { name: "", value: "" }]);
   };
 
-  return (
-    <>
-      <aside className="bg-gradient-to-br from-[#1E2852] to-[#1E2852] -translate-x-80 fixed inset-0 z-50 ms-4 mt-16 h-[calc(100vh-32px)] w-72 rounded-xl transition-transform duration-300 xl:translate-x-0">
-            <div className="relative border-b border-white/20">
-              <a className="flex items-center gap-4 py-6 px-8" href="/seller/sellerdashboard">
-                <h6 className="block antialiased tracking-normal font-sans text-base font-semibold leading-relaxed text-white">
-                  Seller Dashboard
-                </h6>
-              </a>
-              <button
-                className="middle none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-8 max-w-[32px] h-8 max-h-[32px] rounded-lg text-xs text-white hover:bg-white/10 active:bg-white/30 absolute right-0 top-0 grid rounded-br-none rounded-tl-none xl:hidden"
-                type="button"
-              >
-                <span className="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2.5"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                    className="h-5 w-5 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </span>
-              </button>
-            </div>
-            <div className="m-4">
-              <ul className="mb-4 flex flex-col gap-1">
-                <li>
-                  <a aria-current="page" className="active" href="#">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg  text-white shadow-md shadow-[#FC9B3C]-500/20 hover:shadow-lg hover:bg-[#FC9B3C] active:opacity-[0.85] w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
-                        <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        dashboard
-                      </p>
-                    </button>
-                  </a>
-                </li>
-                <li>
-                  <a className="" href="/seller/sellerProfile">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        profile
-                      </p>
-                    </button>
-                  </a>
-                </li>
-                <li>
-                  <a className="" href="/seller/manageProduct">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M1.5 5.625c0-1.036.84-1.875 1.875-1.875h17.25c1.035 0 1.875.84 1.875 1.875v12.75c0 1.035-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 18.375V5.625zM21 9.375A.375.375 0 0020.625 9h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zM10.875 18.75a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5zM3.375 15h7.5a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375zm0-3.75h7.5a.375.375 0 00.375-.375v-1.5A.375.375 0 0010.875 9h-7.5A.375.375 0 003 9.375v1.5c0 .207.168.375.375.375z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        Manage Product
-                      </p>
-                    </button>
-                  </a>
-                </li>
-                <li>
-                  <a className="" href="/seller/addProduct">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M1.5 5.625c0-1.036.84-1.875 1.875-1.875h17.25c1.035 0 1.875.84 1.875 1.875v12.75c0 1.035-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 18.375V5.625zM21 9.375A.375.375 0 0020.625 9h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zM10.875 18.75a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5zM3.375 15h7.5a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375zm0-3.75h7.5a.375.375 0 00.375-.375v-1.5A.375.375 0 0010.875 9h-7.5A.375.375 0 003 9.375v1.5c0 .207.168.375.375.375z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        Add Product
-                      </p>
-                    </button>
-                  </a>
-                </li>
-                <li>
-                  <a className="" href="#">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        notifactions
-                      </p>
-                    </button>
-                  </a>
-                </li>
-              </ul>
-              <ul className="mb-4 flex flex-col gap-1">
-                <li className="mx-3.5 mt-4 mb-2">
-                  <p className="block antialiased font-sans text-sm leading-normal text-white font-black uppercase opacity-75">
-                    auth pages
-                  </p>
-                </li>
-                <li>
-                  <a className="" href="/login">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        sign in
-                      </p>
-                    </button>
-                  </a>
-                </li>
-                <li>
-                  <a className="" href="/signup">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-[#FC9B3C] active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z" />
-                      </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        sign up
-                      </p>
-                    </button>
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </aside>
-      <div className="max-w-screen-lg mx-auto p-5 h-screen">
-        <div className="flex items-center justify-center">
-          <form
-            onSubmit={addProductForm.handleSubmit}
-            className="mb-2 w-50 m-auto mt-5 p-10 bg-purple-50 "
-          >
-            <div className="form-group">
-              <label htmlFor="pname" className="mt-5 mb-2">
-                Product Name
-              </label>
-              <input
-                type="text"
-                name="pname"
-                onChange={addProductForm.handleChange}
-                value={addProductForm.values.pname}
-                className="w-full bg-gray-300 py-1 rounded mb-3"
-                required=""
-              />
-            </div>
+  const removeFeature = (index) => {
+    if (features.length > 1) {
+      const updatedFeatures = features.filter((_, i) => i !== index);
+      setFeatures(updatedFeatures);
+    }
+  };
 
-            <div className="form-group">
-              <label htmlFor="pdetail" className="mb-2">
-                Product Detail
-              </label>
-              <textarea
-                name="pdetail"
-                onChange={addProductForm.handleChange}
-                value={addProductForm.values.pdetail}
-                className="w-full bg-gray-300 py-1 rounded mb-3"
-                required=""
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="pprice" className="mb-2">
-                Product Price
-              </label>
-              <textarea
-                name="pprice"
-                onChange={addProductForm.handleChange}
-                value={addProductForm.values.pprice}
-                className="w-full bg-gray-300 py-1 rounded mb-3"
-                required=""
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="category" className="mb-2">
-                Product Category
-              </label>
-              <select
-                name="category"
-                onChange={(e) => {
-                  addProductForm.handleChange(e);
-                  setSubcategories(categoryOptions[e.target.value] || []);
-                  addProductForm.setFieldValue('subcategory', '');
-                }}
-                value={addProductForm.values.category}
-                className="w-full bg-gray-300 py-2 px-2 rounded mb-3"
-                required
-              >
-                <option value="">Select Category</option>
-                {Object.keys(categoryOptions).map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="subcategory" className="mb-2">
-                Product Subcategory
-              </label>
-              <select
-                name="subcategory"
-                onChange={addProductForm.handleChange}
-                value={addProductForm.values.subcategory}
-                className="w-full bg-gray-300 py-2 px-2 rounded mb-3"
-                required
-                disabled={!addProductForm.values.category}
-              >
-                <option value="">{addProductForm.values.category ? 'Select Subcategory' : 'Select Category First'}</option>
-                {subcategories.map((subcat) => (
-                  <option key={subcat} value={subcat}>{subcat}</option>
-                ))}
-              </select>
-            </div>
-
-            {features.map(({ name, value }, index) => (
-              <div className='form-group grid cols-2'>
-                <label htmlFor="">
-                  Product Feature
-                </label>
-                <input
-                  onChange={(e) => {
-                    updateFeatures(index, "name", e.target.value);
-                  }}
-                  value={name}
-                  className="w-1/2 bg-gray-300 pe-2 rounded mb-3"
-                />
-                <label htmlFor="">Feature Name</label>
-                <input
-                  onChange={(e) => {
-                    updateFeatures(index, "value", e.target.value);
-                  }}
-                  value={value}
-                  className="w-1/2 bg-gray-300  rounded mb-3"
-                />
-              </div>
-            ))}
-
-            <button className="bg-red-500 text-white   mb-5 w-full py-1 rounded-lg" type="button" onClick={addFeature}>Add New Feature</button>
-
-            <div className="flex items-center justify-center w-full">
-              <label
-                htmlFor="dropzone-file"
-                className="flex flex-col items-center justify-center w-full h-58 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg
-                    className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 20 16"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                    />
-                  </svg>
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold">Click to upload</span> or
-                    drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    SVG, PNG, JPG or GIF (MAX. 800x400px)
-                  </p>
-                </div>
-                <input
-                name="images"
-                  id="dropzone-file"
-                  type="file"
-                  onChange={uploadFile}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            <div className="mt-3">
-              <button
-                type="submit"
-                className="bg-red-500 text-white  mb-5 w-full py-1 rounded-lg"
-              >
-                {" "}
-                Add Product
-              </button>
-            </div>
-          </form>
-        </div>
+  if (!sellerReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
-    </>
+    );
+  }
+
+  if (!currentSeller) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <SellerSidebar />
+
+      {/* Main Content */}
+      <div className="p-4 xl:ml-80">
+        {/* Header */}
+        <div className="mb-8">
+          <nav aria-label="breadcrumb" className="w-max">
+            <ol className="flex flex-wrap items-center w-full bg-opacity-60 rounded-md bg-transparent p-0 transition-all">
+              <li className="flex items-center">
+                <Link href="/seller/sellerdashboard" className="text-gray-500 hover:text-emerald-600">Dashboard</Link>
+                <span className="text-gray-500 mx-2">/</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-gray-900 font-semibold">Add Product</span>
+              </li>
+            </ol>
+          </nav>
+          <h1 className="text-2xl font-bold text-gray-900 mt-2">Add New Product</h1>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={addProductForm.handleSubmit}>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Main Product Info */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Basic Information */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 01.67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 11-.671-1.34l.041-.022zM12 9a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                  </svg>
+                  Basic Information
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="pname"
+                      value={addProductForm.values.pname}
+                      onChange={addProductForm.handleChange}
+                      onBlur={addProductForm.handleBlur}
+                      placeholder="Enter product name"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all ${
+                        addProductForm.touched.pname && addProductForm.errors.pname
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    />
+                    {addProductForm.touched.pname && addProductForm.errors.pname && (
+                      <p className="text-red-500 text-sm mt-1">{addProductForm.errors.pname}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="pdetail"
+                      value={addProductForm.values.pdetail}
+                      onChange={addProductForm.handleChange}
+                      onBlur={addProductForm.handleBlur}
+                      rows={4}
+                      placeholder="Describe your product in detail..."
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none ${
+                        addProductForm.touched.pdetail && addProductForm.errors.pdetail
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    />
+                    {addProductForm.touched.pdetail && addProductForm.errors.pdetail && (
+                      <p className="text-red-500 text-sm mt-1">{addProductForm.errors.pdetail}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                      <input
+                        type="number"
+                        name="pprice"
+                        value={addProductForm.values.pprice}
+                        onChange={addProductForm.handleChange}
+                        onBlur={addProductForm.handleBlur}
+                        placeholder="0.00"
+                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all ${
+                          addProductForm.touched.pprice && addProductForm.errors.pprice
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      />
+                    </div>
+                    {addProductForm.touched.pprice && addProductForm.errors.pprice && (
+                      <p className="text-red-500 text-sm mt-1">{addProductForm.errors.pprice}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                    <path fillRule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clipRule="evenodd" />
+                  </svg>
+                  Category
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="category"
+                      value={addProductForm.values.category}
+                      onChange={(e) => {
+                        addProductForm.handleChange(e);
+                        setSubcategories(categoryOptions[e.target.value] || []);
+                        addProductForm.setFieldValue("subcategory", "");
+                      }}
+                      onBlur={addProductForm.handleBlur}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all ${
+                        addProductForm.touched.category && addProductForm.errors.category
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Select Category</option>
+                      {Object.keys(categoryOptions).map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    {addProductForm.touched.category && addProductForm.errors.category && (
+                      <p className="text-red-500 text-sm mt-1">{addProductForm.errors.category}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Subcategory <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="subcategory"
+                      value={addProductForm.values.subcategory}
+                      onChange={addProductForm.handleChange}
+                      onBlur={addProductForm.handleBlur}
+                      disabled={!addProductForm.values.category}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                        addProductForm.touched.subcategory && addProductForm.errors.subcategory
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">{addProductForm.values.category ? "Select Subcategory" : "Select Category First"}</option>
+                      {subcategories.map((subcat) => (
+                        <option key={subcat} value={subcat}>{subcat}</option>
+                      ))}
+                    </select>
+                    {addProductForm.touched.subcategory && addProductForm.errors.subcategory && (
+                      <p className="text-red-500 text-sm mt-1">{addProductForm.errors.subcategory}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                    <path fillRule="evenodd" d="M2.625 6.75a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875 0A.75.75 0 018.25 6h12a.75.75 0 010 1.5h-12a.75.75 0 01-.75-.75zM2.625 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zM7.5 12a.75.75 0 01.75-.75h12a.75.75 0 010 1.5h-12A.75.75 0 017.5 12zm-4.875 5.25a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875 0a.75.75 0 01.75-.75h12a.75.75 0 010 1.5h-12a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                  </svg>
+                  Product Features
+                </h3>
+                <div className="space-y-3">
+                  {features.map((feature, index) => (
+                    <div key={index} className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        value={feature.name}
+                        onChange={(e) => updateFeature(index, "name", e.target.value)}
+                        placeholder="Feature name (e.g., Color)"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={feature.value}
+                        onChange={(e) => updateFeature(index, "value", e.target.value)}
+                        placeholder="Value (e.g., Black)"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFeature(index)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={features.length === 1}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path fillRule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addFeature}
+                    className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                      <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
+                    </svg>
+                    Add Feature
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar - Image Upload */}
+            <div className="space-y-6">
+              {/* Image Upload */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                    <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
+                  </svg>
+                  Product Image
+                </h3>
+                
+                <label
+                  htmlFor="image-upload"
+                  className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                    uploadedImage
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                  }`}
+                >
+                  {uploading ? (
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mb-2"></div>
+                      <p className="text-sm text-gray-500">Uploading...</p>
+                    </div>
+                  ) : uploadedImage ? (
+                    <div className="flex flex-col items-center">
+                      <img
+                        src={`${API_URL}/${uploadedImage}`}
+                        alt="Uploaded"
+                        className="h-32 w-32 object-cover rounded-lg mb-2"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2310b981' viewBox='0 0 24 24'%3E%3Cpath d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E";
+                        }}
+                      />
+                      <p className="text-sm text-emerald-600 font-medium">{uploadedImage}</p>
+                      <p className="text-xs text-gray-500 mt-1">Click to change</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span>
+                      </p>
+                      <p className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  )}
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={uploadFile}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <button
+                  type="submit"
+                  disabled={addProductForm.isSubmitting}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {addProductForm.isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Adding Product...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
+                      </svg>
+                      Add Product
+                    </>
+                  )}
+                </button>
+                
+                <Link
+                  href="/seller/manageProduct"
+                  className="w-full mt-3 block text-center bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </Link>
+              </div>
+
+              {/* Tips */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <h4 className="font-medium text-emerald-800 mb-2 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm11.378-3.917c-.89-.777-2.366-.777-3.255 0a.75.75 0 01-.988-1.129c1.454-1.272 3.776-1.272 5.23 0 1.513 1.324 1.513 3.518 0 4.842a3.75 3.75 0 01-.837.552c-.676.328-1.028.774-1.028 1.152v.75a.75.75 0 01-1.5 0v-.75c0-1.279 1.06-2.107 1.875-2.502.182-.088.351-.199.503-.331.83-.727.83-1.857 0-2.584zM12 18a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                  </svg>
+                  Tips for better listings
+                </h4>
+                <ul className="text-sm text-emerald-700 space-y-1">
+                  <li>• Use high-quality product images</li>
+                  <li>• Write detailed descriptions</li>
+                  <li>• Add relevant features</li>
+                  <li>• Set competitive prices</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
-export default Addproduct;
+export default AddProduct;
