@@ -4,16 +4,23 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { generateKeyPair, exportPublicKey, storePrivateKey, getDeviceInfo } from "@/utils/crypto";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 const SellerSignup = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     businessName: ""
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [usePassword, setUsePassword] = useState(true); // Toggle between password and passwordless
 
   const handleChange = (e) => {
     setFormData({
@@ -22,35 +29,109 @@ const SellerSignup = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // Password-based signup
+  const handlePasswordSignup = async () => {
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return false;
+    }
+
+    // Validate password strength
+    if (formData.password.length < 8) {
+      toast.error("Password must be at least 8 characters long!");
+      return false;
+    }
 
     try {
-      // Generate key pair
-      const keyPair = await generateKeyPair();
-      const publicKey = await exportPublicKey(keyPair.publicKey);
-      await storePrivateKey(keyPair.privateKey, formData.email);
-      const deviceInfo = getDeviceInfo();
-
-      // Send to seller endpoint
-      const res = await fetch("http://localhost:5000/seller/add-passwordless", {
+      const res = await fetch(`${API_URL}/seller/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          fname: formData.fname,
+          lname: formData.lname,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          businessName: formData.businessName
+        }),
+      });
+
+      if (res.status === 200) {
+        return true;
+      } else {
+        const error = await res.json();
+        toast.error(error.message || "Something went wrong");
+        return false;
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Passwordless signup
+  const handlePasswordlessSignup = async () => {
+    try {
+      // Generate key pair
+      const keyPair = await generateKeyPair();
+      
+      // Export public key
+      const publicKey = await exportPublicKey(keyPair.publicKey);
+      
+      // Store private key locally
+      await storePrivateKey(keyPair.privateKey, formData.email);
+      
+      // Get device info
+      const deviceInfo = getDeviceInfo();
+      
+      // Send signup request
+      const res = await fetch(`${API_URL}/seller/passwordless/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fname: formData.fname,
+          lname: formData.lname,
+          email: formData.email,
+          phone: formData.phone,
+          businessName: formData.businessName,
           publicKey,
           deviceInfo
         }),
       });
 
       if (res.status === 200) {
-        toast.success("🎉 Seller Account Created!");
-        setFormData({ fname: "", lname: "", email: "", phone: "", businessName: "" });
-        setTimeout(() => router.push("/sellerLogin"), 1500);
+        return true;
       } else {
         const error = await res.json();
         toast.error(error.message || "Something went wrong");
+        return false;
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      let success = false;
+      if (usePassword) {
+        success = await handlePasswordSignup();
+        if (success) {
+          toast.success("🎉 Seller Account Created!");
+        }
+      } else {
+        success = await handlePasswordlessSignup();
+        if (success) {
+          toast.success("✨ Passwordless Account Created!");
+        }
+      }
+      
+      if (success) {
+        setFormData({ fname: "", lname: "", email: "", password: "", confirmPassword: "", phone: "", businessName: "" });
+        setTimeout(() => router.push("/sellerLogin"), 1500);
       }
     } catch (error) {
       console.error('Seller signup error:', error);
@@ -83,7 +164,7 @@ const SellerSignup = () => {
                 </div>
                 <div className="flex items-center text-white">
                   <span className="text-2xl mr-3">✓</span>
-                  <span>Secure passwordless login</span>
+                  <span>Password or Passwordless options</span>
                 </div>
               </div>
             </div>
@@ -96,13 +177,18 @@ const SellerSignup = () => {
               <p className="text-gray-600">Create your seller account</p>
             </div>
 
-            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <div className="flex items-start">
-                <span className="text-2xl mr-3">🔒</span>
+                <span className="text-2xl mr-3">{usePassword ? "🔒" : "✨"}</span>
                 <div>
-                  <h3 className="font-semibold text-green-900 mb-1">Passwordless Registration</h3>
-                  <p className="text-sm text-green-700">
-                    No password needed - secure cryptographic authentication
+                  <h3 className="font-semibold text-emerald-900 mb-1">
+                    {usePassword ? "Password Registration" : "Passwordless Registration"}
+                  </h3>
+                  <p className="text-sm text-emerald-700">
+                    {usePassword 
+                      ? "Create your account with email and password"
+                      : "No password needed! Your device stores secure cryptographic keys."
+                    }
                   </p>
                 </div>
               </div>
@@ -170,6 +256,61 @@ const SellerSignup = () => {
                 />
               </div>
 
+              {/* Password fields - only shown when usePassword is true */}
+              {usePassword && (
+                <>
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        placeholder="Min. 8 characters"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        required
+                        placeholder="Re-enter password"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
                   Phone Number
@@ -185,12 +326,23 @@ const SellerSignup = () => {
                 />
               </div>
 
+              {/* Toggle Signup Method */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setUsePassword(!usePassword)}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  {usePassword ? "🔓 Use Passwordless Signup" : "🔐 Use Password Signup"}
+                </button>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
               >
-                {loading ? 'Creating Account...' : '🚀 Register as Seller'}
+                {loading ? 'Creating Account...' : usePassword ? '🔐 Register with Password' : '✨ Register without Password'}
               </button>
             </form>
 

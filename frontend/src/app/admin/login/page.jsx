@@ -6,54 +6,38 @@ import toast from "react-hot-toast";
 const AdminLogin = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Using admin-specific passwordless login
-      const challengeRes = await fetch(`http://localhost:5000/api/passwordless-auth/request-challenge`, {
+      // Admin login with email and password
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/authenticate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, password })
       });
 
-      if (!challengeRes.ok) {
-        throw new Error('Admin not found. Please contact system administrator.');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Invalid admin credentials');
       }
 
-      const { challenge } = await challengeRes.json();
+      const data = await response.json();
       
-      // Get private key and sign
-      const { getPrivateKey, signChallenge } = await import('@/utils/crypto');
-      const privateKey = await getPrivateKey(email);
-      if (!privateKey) {
-        throw new Error('No private key found. Please signup first on this device.');
-      }
-
-      const signature = await signChallenge(challenge, privateKey);
-
-      // Verify with admin endpoint
-      const verifyRes = await fetch(`http://localhost:5000/admin/authenticate-passwordless`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, signature, challenge })
-      });
-
-      if (!verifyRes.ok) {
-        const error = await verifyRes.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await verifyRes.json();
-      toast.success("🎉 Admin Login Successful!");
+      // Store admin data in session
       sessionStorage.setItem('admin', JSON.stringify(data));
+      
+      toast.success("🎉 Admin Login Successful!");
       router.push("/admin/admindashboard");
+      
     } catch (error) {
       console.error('Admin login error:', error);
-      toast.error(error.message || "Login failed");
+      toast.error(error.message || "Invalid admin credentials");
     } finally {
       setLoading(false);
     }
@@ -69,13 +53,13 @@ const AdminLogin = () => {
         </div>
 
         <div className="p-8">
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <div className="flex items-start">
               <span className="text-2xl mr-3">🔐</span>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Passwordless Admin Login</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Secure Admin Access</h3>
                 <p className="text-sm text-gray-600">
-                  Secure authentication for administrators
+                  Only authorized administrators can access this portal
                 </p>
               </div>
             </div>
@@ -97,6 +81,30 @@ const AdminLogin = () => {
               />
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter admin password"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -108,10 +116,7 @@ const AdminLogin = () => {
 
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              Need access?{' '}
-              <a href="/admin/adminsignup" className="text-gray-800 hover:text-gray-900 font-semibold">
-                Request Admin Account
-              </a>
+              Authorized personnel only
             </p>
             <div className="mt-4">
               <a href="/login" className="text-gray-500 hover:text-gray-700 text-sm">

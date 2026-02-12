@@ -64,6 +64,7 @@ const CheckOut = () => {
   
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Load user from sessionStorage only on client side
   useEffect(() => {
@@ -71,13 +72,19 @@ const CheckOut = () => {
       const userData = sessionStorage.getItem("user");
       if (userData) {
         try {
-          setCurrentUser(JSON.parse(userData));
+          const user = JSON.parse(userData);
+          setCurrentUser(user);
+          setLoading(false);
         } catch (error) {
           console.error("Error parsing user data:", error);
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
+        router.push('/login');
       }
     }
-  }, []);
+  }, [router]);
 
   // const { currentUser } = useAppContext();
 
@@ -86,8 +93,16 @@ const CheckOut = () => {
   const emailRef = useRef();
 
   const getPaymentIntent = async () => {
+    if (!currentUser) {
+      alert('Please login first');
+      router.push('/login');
+      return;
+    }
+
+    const userName = currentUser.fname ? `${currentUser.fname} ${currentUser.lname || ''}`.trim() : currentUser.name || 'Guest';
+    
     const shipping = {
-      name: currentUser.name,
+      name: userName,
       address: {
         line1: addressRef.current.value,
         postal_code: pincodeRef.current.value,
@@ -119,6 +134,11 @@ const CheckOut = () => {
   }
 
   const saveOrder = async () => {
+    if (!currentUser) {
+      alert('Please login first');
+      router.push('/login');
+      return;
+    }
     
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/order/add`,
@@ -142,6 +162,33 @@ const CheckOut = () => {
       router.push('/');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Please login to continue</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -233,11 +280,17 @@ const CheckOut = () => {
             </p>
             <div className="mt-8 space-y-3 rounded-lg border bg-white px-2 py-4 sm:px-6">
               {cartItems.map((item, index) => (
-                <div className="flex flex-col rounded-lg bg-white sm:flex-row">
+                <div className="flex flex-col rounded-lg bg-white sm:flex-row" key={index}>
                   <img
                     className="m-2 h-24 w-28 rounded-md border object-cover object-center"
-                    src={`${process.env.NEXT_PUBLIC_API_URL}/${item.images[0]}`}
-                    alt=""
+                    src={item.images 
+                      ? `${process.env.NEXT_PUBLIC_API_URL}/${Array.isArray(item.images) ? item.images[0] : item.images}`
+                      : item.image 
+                        ? `${process.env.NEXT_PUBLIC_API_URL}/${item.image}`
+                        : '/placeholder-product.jpg'
+                    }
+                    alt={item.pname || "Product"}
+                    onError={(e) => { e.target.src = '/placeholder-product.jpg'; }}
                   />
                   <div className="flex w-full flex-col px-4 py-4">
                     <span className="font-semibold">

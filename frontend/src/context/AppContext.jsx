@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
   // Initialize state without accessing sessionStorage
   const [currentUser, setCurrentUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Load user from sessionStorage only on client side
   useEffect(() => {
@@ -25,6 +26,7 @@ export const AppProvider = ({ children }) => {
           setLoggedIn(false);
         }
       }
+      setLoading(false);
     }
   }, []);
 
@@ -56,6 +58,7 @@ export const AppProvider = ({ children }) => {
         loggedIn,
         setLoggedIn,
         logout,
+        loading,
       }}
     >
       {children}

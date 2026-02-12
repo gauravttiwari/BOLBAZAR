@@ -15,6 +15,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (finalTranscript.includes('open cart') || finalTranscript.includes('open card')) {
@@ -27,6 +28,19 @@ const Navbar = () => {
       resetTranscript();
     }
   }, [finalTranscript]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setUserDropdownOpen(false);
+        // Don't auto-close login dropdown on click outside as it's hover-based
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -81,8 +95,9 @@ const Navbar = () => {
             <div className="flex items-center gap-1 sm:gap-3">
               
               {/* User Account */}
-              <div className="relative">
+              <div className="relative dropdown-container">
                 {loggedIn ? (
+                  <div>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="hidden sm:flex items-center gap-2 text-white hover:bg-primary-dark px-3 py-2 rounded-sm transition-colors"
@@ -95,35 +110,109 @@ const Navbar = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    className="hidden sm:flex items-center gap-2 bg-white text-primary px-4 py-1.5 rounded-sm font-medium text-sm hover:bg-gray-100 transition-colors"
-                  >
-                    Login
-                  </Link>
-                )}
 
-                {/* User Dropdown */}
-                {userDropdownOpen && loggedIn && (
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-sm shadow-lg border border-gray-100 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
-                      <p className="text-xs text-gray-500">{currentUser?.email}</p>
+                  {/* User Dropdown - For Logged In Users */}
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-sm shadow-lg border border-gray-100 py-2 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
+                        <p className="text-xs text-gray-500">{currentUser?.email}</p>
+                      </div>
+                      <Link href="/user/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                        My Profile
+                      </Link>
+                      <Link href="/user/ordertracking" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                        My Orders
+                      </Link>
+                      <Link href="/user/wishlist" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                        My Wishlist
+                      </Link>
+                      <Link href="/giftcards" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                        Gift Cards
+                      </Link>
+                      <Link href="/sellerLogin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                        Become a Seller
+                      </Link>
+                      <hr className="my-1" />
+                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                        Logout
+                      </button>
                     </div>
-                    <Link href="/user/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
+                  )}
+                  </div>
+                ) : (
+                  <div 
+                    onMouseEnter={() => setLoginDropdownOpen(true)}
+                    onMouseLeave={() => setLoginDropdownOpen(false)}
+                    className="relative"
+                  >
+                    <button
+                      onClick={() => router.push('/login')}
+                      className="hidden sm:flex items-center gap-2 bg-white text-primary px-4 py-1.5 rounded-sm font-medium text-sm hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Login
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Login Dropdown - For Non-Logged In Users */}
+                    {loginDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-sm shadow-lg border border-gray-100 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900">New customer?</p>
+                      <Link href="/signup" className="text-sm text-primary hover:underline font-medium" onClick={() => setLoginDropdownOpen(false)}>
+                        Sign Up
+                      </Link>
+                    </div>
+                    <Link href="/login" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
                       My Profile
                     </Link>
-                    <Link href="/user/ordertracking" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
-                      My Orders
+                    <Link href="/login" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                      Orders
                     </Link>
-                    <Link href="/sellerLogin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserDropdownOpen(false)}>
-                      Become a Seller
+                    <Link href="/user/wishlist" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      Wishlist
+                    </Link>
+                    <Link href="/giftcards" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                      </svg>
+                      Gift Cards
                     </Link>
                     <hr className="my-1" />
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                      Logout
-                    </button>
+                    <Link href="/sellerLogin" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Become a Seller
+                    </Link>
+                    <Link href="/contact" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      24x7 Customer Care
+                    </Link>
+                    <Link href="/about" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setLoginDropdownOpen(false)}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      About Us
+                    </Link>
+                  </div>
+                    )}
                   </div>
                 )}
               </div>

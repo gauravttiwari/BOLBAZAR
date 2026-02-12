@@ -68,7 +68,7 @@ const Contact = () => {
                 </g>
               </svg>
               <span className="text-sm">
-                House #14, Street #12, Darulaman Road, Kabul, Afghanistan.
+               SRMCEM Lucknow, Uttar Pradesh, India
               </span>
             </div>
             <div className="flex items-center mt-5">
@@ -122,7 +122,7 @@ const Contact = () => {
                   ></path>
                 </g>
               </svg>
-              <span className="text-sm">+91 7052424405</span>
+              <span className="text-sm">+91 9090808010</span>
             </div>
             <div className="flex items-center mt-5">
               <svg

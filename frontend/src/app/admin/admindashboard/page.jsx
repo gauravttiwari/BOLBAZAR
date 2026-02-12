@@ -1,7 +1,125 @@
-import React from "react";
+'use client';
+import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { UserGrowthChart, RevenueChart, OrdersChart, OrderStatusChart, SellersChart, ProductsChart } from "@/components/AdminCharts";
 
 
 const AdminDashboard = () => {
+  const [mounted, setMounted] = useState(false);
+  const [adminData, setAdminData] = useState(null);
+  const [stats, setStats] = useState({
+    overview: {
+      totalUsers: 0,
+      totalSellers: 0,
+      totalProducts: 0,
+      totalOrders: 0,
+      totalRevenue: 0
+    },
+    today: {
+      users: 0,
+      orders: 0,
+      revenue: 0,
+      revenueChange: 0
+    },
+    recentOrders: []
+  });
+  const [chartData, setChartData] = useState({
+    users: [],
+    revenue: [],
+    orders: [],
+    products: [],
+    sellers: [],
+    orderStatus: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [chartsLoading, setChartsLoading] = useState(true);
+
+  // Prevent hydration mismatch by ensuring client-only rendering
+  useEffect(() => {
+    setMounted(true);
+    // Get admin data from sessionStorage
+    const admin = sessionStorage.getItem('admin');
+    if (admin) {
+      setAdminData(JSON.parse(admin));
+    }
+  }, []);
+
+  // Logout function
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin');
+    sessionStorage.removeItem('token');
+    window.location.href = '/admin/login';
+  };
+
+  // Fetch dashboard statistics
+  useEffect(() => {
+    fetchDashboardStats();
+    fetchChartData();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard statistics');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setStats(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error('Failed to load dashboard statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchChartData = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/charts`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch chart data');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setChartData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      toast.error('Failed to load charts');
+    } finally {
+      setChartsLoading(false);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Format number with commas
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat('en-IN').format(num);
+  };
+
+  // Prevent hydration mismatch - don't render until mounted
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="text-white text-xl">Loading...</div>
+    </div>;
+  }
+
   return (
     <>
       <>
@@ -39,125 +157,112 @@ const AdminDashboard = () => {
             </div>
             <div className="m-4">
               <ul className="mb-4 flex flex-col gap-1">
+                {/* 📊 Main Dashboard */}
                 <li>
-                  <a aria-current="page" className="active" href="#">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-green-500/40 active:opacity-[0.85] w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
+                  <a aria-current="page" className="active" href="/admin/admindashboard">
+                    <button className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-green-500/40 active:opacity-[0.85] w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                         <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
                         <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
                       </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        dashboard
-                      </p>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Dashboard</p>
                     </button>
                   </a>
                 </li>
+
+                {/* 👤 User Management */}
                 <li>
-                  <a className="" href="#">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                          clipRule="evenodd"
-                        />
+                  <a href="/admin/manageuser">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
                       </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        profile
-                      </p>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">User Management</p>
                     </button>
                   </a>
                 </li>
+
+                {/* 🏪 Seller Management */}
                 <li>
-                  <a className="" href="/admin/manageseller">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M1.5 5.625c0-1.036.84-1.875 1.875-1.875h17.25c1.035 0 1.875.84 1.875 1.875v12.75c0 1.035-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 18.375V5.625zM21 9.375A.375.375 0 0020.625 9h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zm0 3.75a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5a.375.375 0 00.375-.375v-1.5zM10.875 18.75a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375h7.5zM3.375 15h7.5a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.375-.375h-7.5a.375.375 0 00-.375.375v1.5c0 .207.168.375.375.375zm0-3.75h7.5a.375.375 0 00.375-.375v-1.5A.375.375 0 0010.875 9h-7.5A.375.375 0 003 9.375v1.5c0 .207.168.375.375.375z"
-                          clipRule="evenodd"
-                        />
+                  <a href="/admin/manageseller">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
                       </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        Manage Seller
-                      </p>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Seller Management</p>
                     </button>
                   </a>
                 </li>
+
+                {/* 📦 Product Management */}
                 <li>
-                  <a className="" href="#">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z"
-                          clipRule="evenodd"
-                        />
+                  <a href="/admin/manageproduct">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path d="M5.566 4.657A4.505 4.505 0 016.75 4.5h10.5c.41 0 .806.055 1.183.157A3 3 0 0015.75 3h-7.5a3 3 0 00-2.684 1.657zM2.25 12a3 3 0 013-3h13.5a3 3 0 013 3v6a3 3 0 01-3 3H5.25a3 3 0 01-3-3v-6zM5.25 7.5c-.41 0-.806.055-1.184.157A3 3 0 016.75 6h10.5a3 3 0 012.683 1.657A4.505 4.505 0 0018.75 7.5H5.25z" />
                       </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        Manage Product
-                      </p>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Product Management</p>
                     </button>
                   </a>
                 </li>
+
+                {/* 🛒 Order Management */}
                 <li>
-                  <a className="" href="/admin/manageuser">
-                    <button
-                      className="middle none font-sans font-bold center transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="w-5 h-5 text-inherit"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z"
-                          clipRule="evenodd"
-                        />
+                  <a href="/admin/manageorder">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
                       </svg>
-                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">
-                        Manage User
-                      </p>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Order Management</p>
+                    </button>
+                  </a>
+                </li>
+
+                {/* 💰 Payment & Refunds */}
+                <li>
+                  <a href="/admin/payments">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path d="M4.5 3.75a3 3 0 00-3 3v.75h21v-.75a3 3 0 00-3-3h-15z" />
+                        <path fillRule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 003 3h15a3 3 0 003-3v-7.5zm-18 3.75a.75.75 0 01.75-.75h6a.75.75 0 010 1.5h-6a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5h3a.75.75 0 000-1.5h-3z" clipRule="evenodd" />
+                      </svg>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Payments & Refunds</p>
+                    </button>
+                  </a>
+                </li>
+
+                {/* 🎟 Offers & Coupons */}
+                <li>
+                  <a href="/admin/coupons">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clipRule="evenodd" />
+                      </svg>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Offers & Coupons</p>
+                    </button>
+                  </a>
+                </li>
+
+                {/* 📊 Reports & Analytics */}
+                <li>
+                  <a href="/admin/reports">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
+                      </svg>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Reports & Analytics</p>
+                    </button>
+                  </a>
+                </li>
+
+                {/* ⚙️ Settings */}
+                <li>
+                  <a href="/admin/settings">
+                    <button className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-white/10 active:bg-white/30 w-full flex items-center gap-4 px-4 capitalize" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd" />
+                      </svg>
+                      <p className="block antialiased font-sans text-base leading-relaxed text-inherit font-medium capitalize">Settings</p>
                     </button>
                   </a>
                 </li>
@@ -267,7 +372,6 @@ const AdminDashboard = () => {
                         viewBox="0 0 24 24"
                         fill="currentColor"
                         aria-hidden="true"
-                        strokeWidth={3}
                         className="h-6 w-6 text-blue-gray-500"
                       >
                         <path
@@ -278,31 +382,51 @@ const AdminDashboard = () => {
                       </svg>
                     </span>
                   </button>
-                  <a href="http://localhost:3000/login">
-                    <button
-                      className="middle none font-sans font-bold center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30 hidden items-center gap-1 px-4 xl:flex"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="h-5 w-5 text-blue-gray-500"
+                  {adminData ? (
+                    <div className="flex items-center gap-3">
+                      <div className="hidden xl:block text-right mr-2">
+                        <p className="text-sm font-semibold text-gray-700">{adminData.fname} {adminData.lname}</p>
+                        <p className="text-xs text-gray-500">{adminData.email}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="middle none font-sans font-bold center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg bg-red-500 text-white hover:bg-red-600 active:bg-red-700 hidden items-center gap-2 px-4 xl:flex"
+                        type="button"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      Sign In{""}
-                    </button>
-                    <button
-                      className="relative middle none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs text-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30 grid xl:hidden"
-                      type="button"
-                    >
-                      <span className="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="h-5 w-5"
+                        >
+                          <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clipRule="evenodd" />
+                        </svg>
+                        Sign Out
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="relative middle none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs bg-red-500 text-white hover:bg-red-600 active:bg-red-700 grid xl:hidden"
+                        type="button"
+                        title="Sign Out"
+                      >
+                        <span className="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="h-5 w-5"
+                          >
+                            <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <a href="/admin/login">
+                      <button
+                        className="middle none font-sans font-bold center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-xs py-3 rounded-lg text-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30 hidden items-center gap-1 px-4 xl:flex"
+                        type="button"
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -316,9 +440,30 @@ const AdminDashboard = () => {
                             clipRule="evenodd"
                           />
                         </svg>
-                      </span>
-                    </button>
-                  </a>
+                        Sign In
+                      </button>
+                      <button
+                        className="relative middle none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs text-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30 grid xl:hidden"
+                        type="button"
+                      >
+                        <span className="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                            className="h-5 w-5 text-blue-gray-500"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                      </button>
+                    </a>
+                  )}
                   <button
                     className="relative middle none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs text-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30"
                     type="button"
@@ -366,7 +511,7 @@ const AdminDashboard = () => {
               </div>
             </nav>
             <div className="mt-12">
-              <div className="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <div className="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 shadow-md">
                   <div className="bg-clip-border mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white shadow-emerald-500/40 shadow-lg absolute -mt-4 grid h-16 w-16 place-items-center">
                     <svg
@@ -389,14 +534,15 @@ const AdminDashboard = () => {
                     <p className="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
                       Today's Money
                     </p>
-                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
-                      $53k
+                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900" suppressHydrationWarning>
+                      {loading ? '...' : formatCurrency(stats.today.revenue)}
                     </h4>
                   </div>
                   <div className="border-t border-blue-gray-50 p-4">
-                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
-                      <strong className="text-green-500">+55%</strong>&nbsp;than
-                      last week
+                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600" suppressHydrationWarning>
+                      <strong className={stats.today.revenueChange >= 0 ? "text-green-500" : "text-red-500"}>
+                        {stats.today.revenueChange >= 0 ? '+' : ''}{stats.today.revenueChange}%
+                      </strong>&nbsp;than last week
                     </p>
                   </div>
                 </div>
@@ -418,16 +564,41 @@ const AdminDashboard = () => {
                   </div>
                   <div className="p-4 text-right">
                     <p className="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
-                      Today's Users
+                      Total Users
                     </p>
-                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
-                      2,300
+                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900" suppressHydrationWarning>
+                      {loading ? '...' : formatNumber(stats.overview.totalUsers)}
+                    </h4>
+                  </div>
+                  <div className="border-t border-blue-gray-50 p-4">
+                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600" suppressHydrationWarning>
+                      <strong className="text-blue-500">{loading ? '...' : stats.today.users}</strong>&nbsp;new today
+                    </p>
+                  </div>
+                </div>
+                <div className="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 shadow-md">
+                  <div className="bg-clip-border mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-purple-600 to-purple-400 text-white shadow-purple-500/40 shadow-lg absolute -mt-4 grid h-16 w-16 place-items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                      className="w-6 h-6 text-white"
+                    >
+                      <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
+                    </svg>
+                  </div>
+                  <div className="p-4 text-right">
+                    <p className="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
+                      Total Sellers
+                    </p>
+                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900" suppressHydrationWarning>
+                      {loading ? '...' : formatNumber(stats.overview.totalSellers)}
                     </h4>
                   </div>
                   <div className="border-t border-blue-gray-50 p-4">
                     <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
-                      <strong className="text-green-500">+3%</strong>&nbsp;than
-                      last month
+                      <strong className="text-purple-500">Active</strong>&nbsp;sellers
                     </p>
                   </div>
                 </div>
@@ -445,16 +616,15 @@ const AdminDashboard = () => {
                   </div>
                   <div className="p-4 text-right">
                     <p className="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
-                      New Clients
+                      Total Orders
                     </p>
-                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
-                      3,462
+                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900" suppressHydrationWarning>
+                      {loading ? '...' : formatNumber(stats.overview.totalOrders)}
                     </h4>
                   </div>
                   <div className="border-t border-blue-gray-50 p-4">
-                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
-                      <strong className="text-red-500">-2%</strong>&nbsp;than
-                      yesterday
+                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600" suppressHydrationWarning>
+                      <strong className="text-green-500">{loading ? '...' : stats.today.orders}</strong>&nbsp;orders today
                     </p>
                   </div>
                 </div>
@@ -472,21 +642,114 @@ const AdminDashboard = () => {
                   </div>
                   <div className="p-4 text-right">
                     <p className="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
-                      Sales
+                      Total Revenue
                     </p>
-                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
-                      $103,430
+                    <h4 className="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900" suppressHydrationWarning>
+                      {loading ? '...' : formatCurrency(stats.overview.totalRevenue)}
                     </h4>
                   </div>
                   <div className="border-t border-blue-gray-50 p-4">
-                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
-                      <strong className="text-green-500">+5%</strong>&nbsp;than
-                      yesterday
+                    <p className="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600" suppressHydrationWarning>
+                      <strong className="text-blue-500">{loading ? '...' : formatNumber(stats.overview.totalProducts)}</strong>&nbsp;total products
                     </p>
                   </div>
                 </div>
               </div>
               
+              {/* 📊 Interactive Charts Section */}
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">📊 Analytics & Trends</h2>
+                
+                {chartsLoading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500"></div>
+                  </div>
+                ) : (
+                  <>
+                    {/* First Row - Revenue and Orders */}
+                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.revenue.length > 0 ? (
+                            <RevenueChart data={chartData.revenue} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No revenue data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.orders.length > 0 ? (
+                            <OrdersChart data={chartData.orders} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No orders data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Second Row - Users and Sellers */}
+                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.users.length > 0 ? (
+                            <UserGrowthChart data={chartData.users} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No users data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.sellers.length > 0 ? (
+                            <SellersChart data={chartData.sellers} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No sellers data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Third Row - Products and Order Status */}
+                    <div className="grid gap-6 mb-6 md:grid-cols-2">
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.products.length > 0 ? (
+                            <ProductsChart data={chartData.products} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No products data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white rounded-xl shadow-md p-6">
+                        <div className="h-80">
+                          {chartData.orderStatus.length > 0 ? (
+                            <OrderStatusChart data={chartData.orderStatus} />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                              No order status data available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
             </div>
             <div className="text-blue-gray-600">
               <footer className="py-2">

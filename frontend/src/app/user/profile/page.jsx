@@ -8,35 +8,21 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const UserProfile = () => {
   const router = useRouter();
-  const { currentUser, setCurrentUser, setLoggedIn } = useAppContext();
+  const { currentUser, setCurrentUser, setLoggedIn, loading: authLoading } = useAppContext();
   const [profileData, setProfileData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
-  const [authChecked, setAuthChecked] = useState(false);
 
-  // Check auth after initial mount - give time for context to load
+  // Check auth after context has finished loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const userData = sessionStorage.getItem("user");
-      if (!userData) {
-        router.push("/login");
-      } else if (!currentUser) {
-        // User data exists in sessionStorage but context hasn't loaded yet
-        // Context will load it, just wait
-        try {
-          const user = JSON.parse(userData);
-          setCurrentUser(user);
-          setLoggedIn(true);
-        } catch (e) {
-          router.push("/login");
-        }
-      }
-      setAuthChecked(true);
-    }, 100);
+    if (authLoading) return;
     
-    return () => clearTimeout(timer);
-  }, []);
+    if (!currentUser) {
+      router.push("/login");
+      return;
+    }
+  }, [authLoading, currentUser, router]);
 
   const getUserInfo = async () => {
     if (!currentUser?.token) return;
@@ -87,7 +73,7 @@ const UserProfile = () => {
   };
 
   // Show loading while checking authentication
-  if (!authChecked || !currentUser) {
+  if (authLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>

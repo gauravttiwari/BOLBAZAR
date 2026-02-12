@@ -72,21 +72,16 @@ const About = () => {
     <div className="container mx-auto py-8">
       <h2 className="text-2xl font-bold mb-4 text-center">Our Team</h2>
       <div className="flex flex-wrap -mx-4 justify-center">
-        <div className="w-full md:w-1/3 lg:w-1/4 px-4 mb-8 ">
-          <div className="bg-white rounded-lg overflow-hidden shadow-md">
-          <img src='WhatsApp Image 2024-01-23 at 18.44.34_569071c3.jpg' className="w-full h-70 object-cover object-center" /> 
-            
-            <div className="p-4">
-              <h3 className="text-lg font-semibold mb-2"> Harshit Sahu</h3>
-              <p className="text-gray-600">MERN Stack Developer</p>
-            </div>
+<div className="w-full md:w-1/3 lg:w-1/4 px-4 mb-8 ">
+ <div className="bg-white rounded-lg overflow-hidden shadow-md">
+   <img src='/grv2.jpeg' alt="Gaurav Tiwari" className="w-full h-70 object-cover object-center" /> <div className="p-4"> <h3 className="text-lg font-semibold mb-2"> Gaurav Tiwari</h3> <p className="text-gray-600">MERN Stack Developer</p> </div>
           </div>
         </div>
         <div className="w-full md:w-1/3 lg:w-1/4 px-4 mb-8">
           <div className="bg-white rounded-lg overflow-hidden shadow-md">
-          <img src='WhatsApp Image 2024-01-23 at 18.44.34_569071c3.jpg' className="w-full h-70 object-cover object-center" />
+          <img src='/grv1.jpeg' alt="Gaurav Tiwari" className="w-full h-70 object-cover object-center" />
             <div className="p-4">
-              <h3 className="text-lg font-semibold mb-2">Hemant Singh</h3>
+              <h3 className="text-lg font-semibold mb-2">Gaurav Tiwari</h3>
               <p className="text-gray-600">Frontend Developer</p>
             </div>
           </div>

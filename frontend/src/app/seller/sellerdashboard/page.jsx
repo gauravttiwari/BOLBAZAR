@@ -70,9 +70,13 @@ const StatusBadge = ({ status }) => {
 };
 
 const SellerDashboard = () => {
+  console.log("📊 Seller Dashboard component loaded");
   const { currentSeller, sellerReady } = useSellerContext();
+  console.log("Current seller:", currentSeller);
+  console.log("Seller ready:", sellerReady);
   const [stats, setStats] = useState(null);
   const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -88,18 +92,27 @@ const SellerDashboard = () => {
 
     setLoading(true);
     try {
-      const [statsRes, productsRes] = await Promise.all([
+      const [statsRes, productsRes, reviewsRes] = await Promise.all([
         fetch(`${API_URL}/order/seller-stats/${currentSeller._id}`),
         fetch(`${API_URL}/product/getbyseller/${currentSeller._id}`),
+        fetch(`${API_URL}/review/getall`),
       ]);
 
       if (!statsRes.ok) throw new Error("Failed to fetch statistics");
 
       const statsData = await statsRes.json();
       const productsData = productsRes.ok ? await productsRes.json() : [];
+      const allReviews = reviewsRes.ok ? await reviewsRes.json() : [];
+      
+      // Filter reviews for seller's products
+      const sellerProductIds = productsData.map(p => p._id);
+      const sellerReviews = allReviews.filter(review => 
+        sellerProductIds.includes(review.product)
+      );
 
       setStats(statsData);
       setProducts(productsData);
+      setReviews(sellerReviews);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -149,6 +162,37 @@ const SellerDashboard = () => {
     date: formatChartDate(item.date),
   })) || [];
 
+  // Calculate average rating
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length).toFixed(1)
+    : "0.0";
+
+  // Calculate pending payments (20% commission on pending/processing orders)
+  const pendingPayments = ((stats?.pendingOrders || 0) * 0.8 * (stats?.todayRevenue || 0) / (stats?.todayOrders || 1)) || 0;
+
+  // Find low stock products (stock < 10)
+  const lowStockProducts = products.filter(p => (p.pstock || 0) < 10);
+
+  // Calculate best selling products from recent orders
+  const productSales = {};
+  stats?.recentOrders?.forEach(order => {
+    order.items?.forEach(item => {
+      if (!productSales[item.pid]) {
+        productSales[item.pid] = {
+          pid: item.pid,
+          pname: item.pname,
+          quantity: 0,
+          revenue: 0
+        };
+      }
+      productSales[item.pid].quantity += item.quantity || 1;
+      productSales[item.pid].revenue += (item.pprice * (item.quantity || 1));
+    });
+  });
+  const bestSellingProducts = Object.values(productSales)
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5);
+
   // Pie chart data for order status
   const orderStatusData = [
     { name: "Pending", value: stats?.pendingOrders || 0, color: "#f59e0b" },
@@ -187,6 +231,16 @@ const SellerDashboard = () => {
     pending: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
         <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clipRule="evenodd" />
+      </svg>
+    ),
+    star: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+      </svg>
+    ),
+    wallet: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+        <path d="M2.273 5.625A4.483 4.483 0 015.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 3H5.25a3 3 0 00-2.977 2.625zM2.273 8.625A4.483 4.483 0 015.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 6H5.25a3 3 0 00-2.977 2.625zM5.25 9a3 3 0 00-3 3v6a3 3 0 003 3h13.5a3 3 0 003-3v-6a3 3 0 00-3-3H15a.75.75 0 00-.75.75 2.25 2.25 0 01-4.5 0A.75.75 0 009 9H5.25z" />
       </svg>
     ),
   };
@@ -294,7 +348,7 @@ const SellerDashboard = () => {
           <>
             {/* Stats Cards */}
             <div className="mt-12">
-              <div className="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-6">
                 <StatCard
                   title="Today's Revenue"
                   value={formatCurrency(stats?.todayRevenue)}
@@ -312,20 +366,36 @@ const SellerDashboard = () => {
                   gradient="bg-gradient-to-tr from-pink-600 to-pink-400 shadow-pink-500/40"
                 />
                 <StatCard
-                  title="Items Sold"
-                  value={stats?.totalItemsSold || 0}
-                  change={`${products.length} products listed`}
-                  changeType="neutral"
-                  icon={icons.items}
-                  gradient="bg-gradient-to-tr from-green-600 to-green-400 shadow-green-500/40"
+                  title="Total Products"
+                  value={products.length}
+                  change={`${lowStockProducts.length} low stock`}
+                  changeType={lowStockProducts.length > 0 ? "negative" : "neutral"}
+                  icon={icons.products}
+                  gradient="bg-gradient-to-tr from-blue-600 to-blue-400 shadow-blue-500/40"
                 />
                 <StatCard
-                  title="Total Revenue"
-                  value={formatCurrency(stats?.totalRevenue)}
-                  change={`${stats?.weekGrowth || 0}% this week`}
-                  changeType={stats?.weekGrowth >= 0 ? "positive" : "negative"}
-                  icon={icons.growth}
+                  title="Average Rating"
+                  value={`${averageRating} ⭐`}
+                  change={`${reviews.length} reviews`}
+                  changeType="neutral"
+                  icon={icons.star}
+                  gradient="bg-gradient-to-tr from-yellow-600 to-yellow-400 shadow-yellow-500/40"
+                />
+                <StatCard
+                  title="Pending Orders"
+                  value={stats?.pendingOrders || 0}
+                  change={`${((stats?.pendingOrders / (stats?.totalOrders || 1)) * 100).toFixed(0)}% of total`}
+                  changeType="neutral"
+                  icon={icons.pending}
                   gradient="bg-gradient-to-tr from-orange-600 to-orange-400 shadow-orange-500/40"
+                />
+                <StatCard
+                  title="Pending Payments"
+                  value={formatCurrency(pendingPayments)}
+                  change="Settlement due"
+                  changeType="neutral"
+                  icon={icons.wallet}
+                  gradient="bg-gradient-to-tr from-purple-600 to-purple-400 shadow-purple-500/40"
                 />
               </div>
             </div>
@@ -616,6 +686,136 @@ const SellerDashboard = () => {
                   </Link>
                 </div>
               )}
+            </div>
+
+            {/* Low Stock Alert */}
+            {lowStockProducts.length > 0 && (
+              <div className="bg-amber-50 border-l-4 border-amber-500 rounded-xl shadow-md p-6 mb-12">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-amber-500">
+                      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-amber-900 mb-2">⚠️ Low Stock Alert</h3>
+                    <p className="text-sm text-amber-800 mb-4">
+                      {lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low on stock. Update inventory to avoid losing sales.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {lowStockProducts.slice(0, 6).map((product) => (
+                        <div key={product._id} className="bg-white rounded-lg p-3 border border-amber-200 flex items-center gap-3">
+                          {product.images && product.images[0] ? (
+                            <img
+                              src={product.images[0].startsWith("http") ? product.images[0] : `${API_URL}/${product.images[0]}`}
+                              alt={product.pname}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">No Img</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-800 truncate">{product.pname}</p>
+                            <p className="text-xs text-amber-700 font-semibold">Stock: {product.pstock || 0}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {lowStockProducts.length > 6 && (
+                      <Link href="/seller/manageProduct" className="inline-block mt-4 text-sm text-amber-700 font-medium hover:text-amber-800">
+                        View all {lowStockProducts.length} low stock products →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Best Selling Products & Payment/Earnings Section */}
+            <div className="mb-12 grid gap-6 md:grid-cols-2">
+              {/* Best Selling Products */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">🏆 Best Selling Products</h3>
+                    <p className="text-sm text-gray-500">Top 5 products by quantity sold</p>
+                  </div>
+                </div>
+                {bestSellingProducts.length > 0 ? (
+                  <div className="space-y-3">
+                    {bestSellingProducts.map((product, index) => (
+                      <div key={product.pid} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                            index === 1 ? 'bg-gray-200 text-gray-700' :
+                            index === 2 ? 'bg-orange-100 text-orange-700' :
+                            'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            #{index + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">{product.pname}</p>
+                            <p className="text-xs text-gray-500">{product.quantity} units sold</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-emerald-600">{formatCurrency(product.revenue)}</p>
+                          <p className="text-xs text-gray-500">Revenue</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <p className="text-sm">No sales data available yet.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment/Earnings Summary */}
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-400 rounded-xl shadow-md p-6 text-white">
+                <div className="flex items-center gap-2 mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                    <path d="M2.273 5.625A4.483 4.483 0 015.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 3H5.25a3 3 0 00-2.977 2.625zM2.273 8.625A4.483 4.483 0 015.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 6H5.25a3 3 0 00-2.977 2.625zM5.25 9a3 3 0 00-3 3v6a3 3 0 003 3h13.5a3 3 0 003-3v-6a3 3 0 00-3-3H15a.75.75 0 00-.75.75 2.25 2.25 0 01-4.5 0A.75.75 0 009 9H5.25z" />
+                  </svg>
+                  <h3 className="text-lg font-semibold">💰 Earnings Summary</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                    <p className="text-sm opacity-90">Total Earnings</p>
+                    <p className="text-3xl font-bold mt-1">{formatCurrency(stats?.totalRevenue)}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                      <p className="text-xs opacity-90">Commission (20%)</p>
+                      <p className="text-lg font-semibold mt-1">-{formatCurrency((stats?.totalRevenue || 0) * 0.2)}</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                      <p className="text-xs opacity-90">Net Earnings</p>
+                      <p className="text-lg font-semibold mt-1">{formatCurrency((stats?.totalRevenue || 0) * 0.8)}</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-white/20 pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm opacity-90">Pending Settlement</span>
+                      <span className="text-lg font-semibold">{formatCurrency(pendingPayments)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm opacity-90">Completed Orders</span>
+                      <span className="text-sm font-medium">{stats?.completedOrders || 0}</span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/seller/manageorder"
+                    className="block w-full text-center bg-white text-emerald-600 px-4 py-2 rounded-lg font-medium hover:bg-emerald-50 transition-colors mt-4"
+                  >
+                    View Payment History
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Footer */}

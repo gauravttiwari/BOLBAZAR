@@ -8,6 +8,12 @@ function generateChallenge() {
 // Verify RSA signature
 function verifySignature(publicKeyPEM, challenge, signature) {
   try {
+    // Validate inputs
+    if (!publicKeyPEM || !challenge || !signature) {
+      console.error('❌ Missing required parameters for verification');
+      return false;
+    }
+    
     console.log('🔍 Verifying signature...');
     console.log('📝 Challenge:', challenge);
     console.log('📝 Signature (first 50 chars):', signature.substring(0, 50));
@@ -22,6 +28,7 @@ function verifySignature(publicKeyPEM, challenge, signature) {
     return result;
   } catch (error) {
     console.error('❌ Signature verification error:', error.message);
+    console.error('📊 Stack:', error.stack);
     return false;
   }
 }

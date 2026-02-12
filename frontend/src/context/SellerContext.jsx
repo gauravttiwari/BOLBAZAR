@@ -15,20 +15,23 @@ export const SellerProvider = ({children}) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const sellerData = sessionStorage.getItem("seller");
+      console.log("🔍 SellerContext: Loading seller from sessionStorage:", sellerData);
       if (sellerData) {
         try {
           const parsedData = JSON.parse(sellerData);
           // Handle both old format { message, token, seller: {...} } and new format { _id, fname, ... }
           const seller = parsedData.seller || parsedData;
+          console.log("✅ SellerContext: Parsed seller data:", seller);
           setCurrentSeller(seller);
           setSellerLoggedIn(seller !== null && seller._id);
         } catch (error) {
-          console.error("Error parsing seller data from sessionStorage:", error);
+          console.error("❌ SellerContext: Error parsing seller data:", error);
           setCurrentSeller(null);
           setSellerLoggedIn(false);
         }
       }
       setSellerReady(true);
+      console.log("🎯 SellerContext: Ready state set to true");
     }
   }, []);
 

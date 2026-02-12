@@ -80,7 +80,7 @@ const SellerSidebar = () => {
   const isActive = (href) => pathname === href;
 
   return (
-    <aside className="bg-gradient-to-br from-emerald-700 to-emerald-800 -translate-x-80 fixed inset-0 z-50 ms-4 mt-16 h-[calc(100vh-32px)] w-72 rounded-xl transition-transform duration-300 xl:translate-x-0">
+    <aside className="bg-gradient-to-br from-emerald-700 to-emerald-800 -translate-x-80 fixed inset-0 z-50 ms-4 mt-16 h-[calc(100vh-32px)] w-72 rounded-xl transition-transform duration-300 xl:translate-x-0 overflow-y-auto">
       <div className="relative border-b border-white/20">
         <Link className="flex items-center gap-4 py-6 px-8" href="/seller/sellerdashboard">
           <h6 className="block antialiased tracking-normal font-sans text-base font-semibold leading-relaxed text-white">
@@ -88,7 +88,7 @@ const SellerSidebar = () => {
           </h6>
         </Link>
       </div>
-      <div className="m-4 flex flex-col h-[calc(100%-100px)] justify-between">
+      <div className="m-4 flex flex-col min-h-[calc(100vh-200px)] justify-between">
         <ul className="mb-4 flex flex-col gap-1">
           {menuItems.map((item) => (
             <li key={item.name}>
@@ -112,16 +112,16 @@ const SellerSidebar = () => {
         </ul>
 
         {/* Logout Section */}
-        <div className="border-t border-white/20 pt-4">
-          <div className="px-4 mb-4">
+        <div className="border-t border-white/20 pt-4 mt-auto">
+          <div className="px-4 mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
-                <span className="text-white font-bold">
+              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">
                   {currentSeller?.fname?.charAt(0)?.toUpperCase() || "S"}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">
+                <p className="text-white font-medium text-sm truncate">
                   {currentSeller?.fname} {currentSeller?.lname}
                 </p>
                 <p className="text-emerald-200 text-xs truncate">
@@ -130,18 +130,18 @@ const SellerSidebar = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="middle none font-sans font-bold center transition-all text-xs py-3 rounded-lg text-white hover:bg-red-500/20 active:bg-red-500/30 w-full flex items-center gap-4 px-4 capitalize border border-red-400/30"
-            type="button"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-300">
-              <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clipRule="evenodd" />
-            </svg>
-            <p className="block antialiased font-sans text-base leading-relaxed text-red-300 font-medium capitalize">
-              Logout
-            </p>
-          </button>
+          <div className="px-4">
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 border border-red-400/50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-3"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm font-bold">Logout</span>
+            </button>
+          </div>
         </div>
       </div>
     </aside>

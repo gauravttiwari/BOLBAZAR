@@ -13,7 +13,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [usePassword, setUsePassword] = useState(false);
+  const [usePassword, setUsePassword] = useState(true); // Default to password login
 
   // Traditional password login
   const handlePasswordLogin = async () => {
@@ -42,7 +42,7 @@ const Login = () => {
       sessionStorage.setItem('user', JSON.stringify(userData));
       setLoggedIn(true);
       setCurrentUser(userData);
-      router.push("/productView");
+      router.push("/");
     } catch (error) {
       throw error;
     }
@@ -56,7 +56,7 @@ const Login = () => {
       sessionStorage.setItem('user', JSON.stringify(data.user));
       setLoggedIn(true);
       setCurrentUser(data.user);
-      router.push("/productView");
+      router.push("/");
     } catch (error) {
       // If passwordless fails, show password option
       console.error('Passwordless login error:', error);
@@ -155,6 +155,11 @@ const Login = () => {
                     placeholder="Enter your password"
                     className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-gray-900 bg-white"
                   />
+                  <div className="mt-2 text-right">
+                    <a href="/reset-password" className="text-sm text-primary hover:underline">
+                      Forgot Password?
+                    </a>
+                  </div>
                 </div>
               )}
 

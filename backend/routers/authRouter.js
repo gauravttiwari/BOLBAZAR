@@ -98,7 +98,7 @@ router.post('/verify-challenge', async (req, res) => {
     let matchedKeyIndex = -1;
 
     for (let i = 0; i < user.publicKeys.length; i++) {
-      if (verifySignature(challenge, signature, user.publicKeys[i].key)) {
+      if (verifySignature(user.publicKeys[i].key, challenge, signature)) {
         verified = true;
         matchedKeyIndex = i;
         break;

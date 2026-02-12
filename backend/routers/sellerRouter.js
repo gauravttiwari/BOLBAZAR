@@ -18,7 +18,7 @@ router.post('/add', (req, res) => {
 });
 
 // Passwordless Signup
-router.post('/add-passwordless', async (req, res) => {
+router.post('/passwordless/signup', async (req, res) => {
     try {
         const { email, fname, lname, businessName, publicKey, deviceInfo } = req.body;
 
@@ -61,7 +61,7 @@ router.post('/add-passwordless', async (req, res) => {
 });
 
 // Passwordless Login - Request Challenge
-router.post('/request-challenge', async (req, res) => {
+router.post('/passwordless/challenge', async (req, res) => {
     try {
         const { email } = req.body;
         
@@ -89,7 +89,7 @@ router.post('/request-challenge', async (req, res) => {
 });
 
 // Passwordless Login - Verify Challenge
-router.post('/verify-challenge', async (req, res) => {
+router.post('/passwordless/verify', async (req, res) => {
     try {
         const { email, signature, deviceInfo } = req.body;
         console.log('🔐 Verify Challenge Request:', { email, hasSignature: !!signature });
