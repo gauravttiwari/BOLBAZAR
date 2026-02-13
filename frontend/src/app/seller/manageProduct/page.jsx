@@ -25,17 +25,32 @@ const ManageProduct = () => {
   }, [sellerReady, currentSeller, router]);
 
   const fetchProductData = async () => {
-    if (!currentSeller?._id) return;
+    if (!currentSeller?._id || !currentSeller?.token) {
+      console.log('⚠️ Seller not logged in or missing token');
+      return;
+    }
 
     setLoading(true);
+    console.log('🔄 Fetching seller products...');
+    
     try {
-      const res = await fetch(`${API_URL}/product/getbyseller/${currentSeller._id}`);
+      const res = await fetch(`${API_URL}/product/getbyseller`, {
+        headers: {
+          'x-auth-token': currentSeller.token
+        }
+      });
+      
       if (res.ok) {
         const data = await res.json();
+        console.log(`✅ Seller has ${data.length} products`);
+        console.log('📦 Products:', data);
         setProductList(data);
+      } else {
+        console.error('❌ Failed to fetch seller products - Status:', res.status);
+        toast.error('Failed to load products');
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error('❌ Error fetching products:', error);
       toast.error("Failed to load products");
     } finally {
       setLoading(false);

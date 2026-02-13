@@ -262,4 +262,221 @@ router.get('/getbyuser/:userId', (req, res) => {
         });
 });
 
+// Update order status with tracking
+router.put('/update-status/:id', async (req, res) => {
+    try {
+        const { status, message, location } = req.body;
+        const order = await Model.findById(req.params.id);
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        // Update status
+        order.status = status;
+        
+        // Add to status history
+        order.statusHistory.push({
+            status,
+            timestamp: new Date(),
+            note: message || `Order status changed to ${status}`
+        });
+        
+        // Add tracking information
+        if (message || location) {
+            order.tracking.push({
+                status,
+                message: message || `Order ${status}`,
+                location: location || '',
+                timestamp: new Date()
+            });
+        }
+        
+        // Update specific timestamps
+        const now = new Date();
+        switch(status) {
+            case 'processing':
+                order.processingAt = now;
+                break;
+            case 'shipped':
+                order.shippedAt = now;
+                break;
+            case 'out_for_delivery':
+                order.outForDeliveryAt = now;
+                break;
+            case 'delivered':
+                order.deliveredAt = now;
+                break;
+        }
+        
+        await order.save();
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Error updating order status:', err);
+        res.status(500).json(err);
+    }
+});
+
+// Add courier details
+router.put('/add-courier-details/:id', async (req, res) => {
+    try {
+        const order = await Model.findByIdAndUpdate(
+            req.params.id,
+            { 
+                courierDetails: req.body,
+                status: 'shipped',
+                shippedAt: new Date()
+            },
+            { new: true }
+        );
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        // Add tracking entry
+        order.tracking.push({
+            status: 'shipped',
+            message: `Order shipped via ${req.body.courierName}`,
+            timestamp: new Date()
+        });
+        
+        await order.save();
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Error adding courier details:', err);
+        res.status(500).json(err);
+    }
+});
+
+// Request return
+router.put('/request-return/:id', async (req, res) => {
+    try {
+        const { returnReason } = req.body;
+        const order = await Model.findById(req.params.id);
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        if (order.status !== 'delivered') {
+            return res.status(400).json({ message: 'Can only return delivered orders' });
+        }
+        
+        // Check if within return window
+        const deliveryDate = new Date(order.deliveredAt);
+        const today = new Date();
+        const daysSinceDelivery = Math.floor((today - deliveryDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceDelivery > order.returnWindow) {
+            return res.status(400).json({ 
+                message: `Return window of ${order.returnWindow} days has expired` 
+            });
+        }
+        
+        order.returnRequested = true;
+        order.returnReason = returnReason;
+        order.returnStatus = 'pending';
+        order.status = 'return_requested';
+        
+        order.statusHistory.push({
+            status: 'return_requested',
+            timestamp: new Date(),
+            note: `Return requested: ${returnReason}`
+        });
+        
+        await order.save();
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Error requesting return:', err);
+        res.status(500).json(err);
+    }
+});
+
+// Process refund
+router.put('/process-refund/:id', async (req, res) => {
+    try {
+        const { refundAmount, refundStatus } = req.body;
+        const order = await Model.findByIdAndUpdate(
+            req.params.id,
+            { 
+                refundAmount,
+                refundStatus,
+                returnStatus: 'approved'
+            },
+            { new: true }
+        );
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        order.statusHistory.push({
+            status: 'refund_processed',
+            timestamp: new Date(),
+            note: `Refund of ₹${refundAmount} processed`
+        });
+        
+        await order.save();
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Error processing refund:', err);
+        res.status(500).json(err);
+    }
+});
+
+// Notify seller
+router.put('/notify-seller/:id', async (req, res) => {
+    try {
+        const order = await Model.findByIdAndUpdate(
+            req.params.id,
+            { 
+                sellerNotified: true,
+                sellerNotifiedAt: new Date()
+            },
+            { new: true }
+        );
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        // Here you would send actual notification to seller (email, SMS, push notification)
+        // For now, just update the database
+        
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Error notifying seller:', err);
+        res.status(500).json(err);
+    }
+});
+
+// Get order tracking details
+router.get('/tracking/:id', async (req, res) => {
+    try {
+        const order = await Model.findById(req.params.id)
+            .populate('user', 'fname lname email');
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        const trackingInfo = {
+            orderId: order._id,
+            status: order.status,
+            tracking: order.tracking,
+            statusHistory: order.statusHistory,
+            courierDetails: order.courierDetails,
+            estimatedDeliveryDate: order.estimatedDeliveryDate,
+            deliveredAt: order.deliveredAt,
+            shippingAddress: order.shippingAddress
+        };
+        
+        res.status(200).json(trackingInfo);
+    } catch (err) {
+        console.error('Error fetching tracking details:', err);
+        res.status(500).json(err);
+    }
+});
+
 module.exports = router;

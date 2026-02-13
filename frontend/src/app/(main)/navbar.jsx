@@ -147,7 +147,11 @@ const Navbar = () => {
                     className="relative"
                   >
                     <button
-                      onClick={() => router.push('/login')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLoginDropdownOpen(false);
+                        router.push('/login');
+                      }}
                       className="hidden sm:flex items-center gap-2 bg-white text-primary px-4 py-1.5 rounded-sm font-medium text-sm hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

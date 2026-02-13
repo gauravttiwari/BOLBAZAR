@@ -39,10 +39,20 @@ const Login = () => {
         email: data.email, 
         token: data.token 
       };
-      sessionStorage.setItem('user', JSON.stringify(userData));
+      
+      // Update context and sessionStorage (context will handle sessionStorage)
       setLoggedIn(true);
       setCurrentUser(userData);
-      router.push("/");
+      
+      // Check if user came from checkout
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Small delay to ensure state is updated
+        setTimeout(() => router.push(redirectPath), 200);
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       throw error;
     }
@@ -53,10 +63,20 @@ const Login = () => {
     try {
       const data = await passwordlessLogin(email);
       toast.success("🎉 Login Successful - No Password Needed!");
-      sessionStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Update context (context will handle sessionStorage)
       setLoggedIn(true);
       setCurrentUser(data.user);
-      router.push("/");
+      
+      // Check if user came from checkout
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        // Small delay to ensure state is updated
+        setTimeout(() => router.push(redirectPath), 200);
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       // If passwordless fails, show password option
       console.error('Passwordless login error:', error);

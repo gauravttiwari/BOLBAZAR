@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import useCartContext from "@/context/CartContext";
-import useAppContext from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import { IconMapPin, IconTruck, IconCreditCard, IconCheck, IconPlus, IconEdit, IconTrash } from "@tabler/icons-react";
 import { loadStripe } from "@stripe/stripe-js";
@@ -16,43 +15,14 @@ const appearance = {
   theme: "day",
 };
 
-const CheckOut = () => {
+const MultiStepCheckout = () => {
   const router = useRouter();
-  const { cartItems: contextCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
-  const { currentUser, loggedIn, loading: authLoading } = useAppContext();
+  const { cartItems, getCartTotal, clearCart } = useCartContext();
   
   // State management
   const [currentStep, setCurrentStep] = useState(1);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cartLoaded, setCartLoaded] = useState(false);
-  const [cartItems, setCartItems] = useState([]);  // Local state
-  
-  // Key change: Use both CartContext AND localStorage
-  useEffect(() => {
-    console.log('🔄 Checkout cart sync started');
-    console.log('📦 Context has:', contextCartItems?.length || 0, 'items');
-    
-    // ALWAYS read from localStorage directly
-    try {
-      const stored = localStorage.getItem('cartItems');
-      console.log('💾 Raw localStorage:', stored?.substring(0, 100));
-      
-      if (stored && stored !== 'null' && stored !== '[]') {
-        const parsed = JSON.parse(stored);
-        console.log('✅ Parsed:', parsed.length, 'items');
-        console.log('📋 Items:', parsed.map(i => i.pname).join(', '));
-        setCartItems(parsed);
-      } else {
-        console.log('⚠️ localStorage empty or invalid');
-        setCartItems([]);
-      }
-    } catch (error) {
-      console.error('❌ Parse error:', error);
-      setCartItems([]);
-    }
-    
-    setCartLoaded(true);
-  }, [contextCartItems]); // Re-run when context updates
   
   // Address state
   const [addresses, setAddresses] = useState([]);
@@ -81,46 +51,25 @@ const CheckOut = () => {
   const [clientSecret, setClientSecret] = useState("");
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Steps for checkout wizard
-  const steps = [
-    { num: 1, label: 'Address', icon: <IconMapPin size={24} /> },
-    { num: 2, label: 'Delivery', icon: <IconTruck size={24} /> },
-    { num: 3, label: 'Payment', icon: <IconCreditCard size={24} /> },
-    { num: 4, label: 'Confirm', icon: <IconCheck size={24} /> }
-  ];
-
-  // Helper function to get cart total
-  const getCartTotal = () => {
-    return cartItems.reduce((acc, item) => 
-      acc + ((item.pprice || item.price || 0) * (item.quantity || 1)), 0
-    );
-  };
-
-  // Check authentication and load addresses
+  // Load user
   useEffect(() => {
-    const initializeCheckout = async () => {
-      // Wait for auth context to load
-      if (authLoading) {
-        return;
-      }
-
-      // If not logged in, redirect to login
-      if (!loggedIn || !currentUser) {
-        sessionStorage.setItem('redirectAfterLogin', '/user/checkout');
+    if (typeof window !== 'undefined') {
+      const userData = sessionStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          setCurrentUser(user);
+          loadAddresses(user._id);
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          router.push('/login');
+        }
+      } else {
         router.push('/login');
-        return;
       }
-
-      // User is logged in, load addresses
-      if (currentUser?._id) {
-        await loadAddresses(currentUser._id);
-      }
-      
       setLoading(false);
-    };
-
-    initializeCheckout();
-  }, [authLoading, loggedIn, currentUser, router]);
+    }
+  }, [router]);
 
   // Load addresses
   const loadAddresses = async (userId) => {
@@ -240,18 +189,10 @@ const CheckOut = () => {
   const getPaymentIntent = async () => {
     if (!currentUser || !selectedAddress) {
       alert('Please complete all required steps');
-      return null;
+      return;
     }
 
     const totalAmount = getCartTotal() + deliveryCharge;
-    
-    if (totalAmount <= 0) {
-      alert('Cart is empty. Please add items to cart before checkout.');
-      router.push('/');
-      return null;
-    }
-    
-    console.log('Creating payment intent for amount:', totalAmount);
     
     try {
       const res = await fetch(`${API_URL}/create-payment-intent`, {
@@ -273,18 +214,12 @@ const CheckOut = () => {
         }),
       });
       
-      if (!res.ok) {
-        throw new Error(`Payment intent creation failed: ${res.status}`);
-      }
-      
       const data = await res.json();
-      console.log('Payment intent created successfully');
       setClientSecret(data.clientSecret);
       return data.clientSecret;
     } catch (error) {
       console.error("Error creating payment intent:", error);
-      alert("Failed to initialize payment. Please try again or choose Cash on Delivery.");
-      return null;
+      alert("Failed to initialize payment. Please try again.");
     }
   };
 
@@ -295,24 +230,10 @@ const CheckOut = () => {
       return;
     }
 
-    console.log('🛒 Placing order with', cartItems.length, 'items');
-    console.log('📦 Items:', cartItems);
-
-    if (!cartItems || cartItems.length === 0) {
-      alert('Your cart is empty. Please add items before placing order.');
-      router.push('/');
-      return;
-    }
-
     setProcessingPayment(true);
-    console.log('Placing order with items:', cartItems);
 
     try {
-      const subtotal = getCartTotal();
-      const totalAmount = subtotal + deliveryCharge;
-      console.log('Order subtotal:', subtotal);
-      console.log('Order total amount:', totalAmount);
-      
+      const totalAmount = getCartTotal() + deliveryCharge;
       const estimatedDate = new Date();
       estimatedDate.setDate(estimatedDate.getDate() + estimatedDeliveryDays);
 
@@ -327,7 +248,7 @@ const CheckOut = () => {
         paymentDetails: { amount: totalAmount },
         mode: paymentMethod === 'cod' ? 'cash' : 'online',
         intentId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-        subtotal: subtotal,
+        subtotal: getCartTotal(),
         totalAmount,
         status: 'placed',
         statusHistory: [{
@@ -348,27 +269,18 @@ const CheckOut = () => {
         body: JSON.stringify(orderData)
       });
 
-      console.log('Order response status:', response.status);
-
       if (response.ok) {
         const order = await response.json();
-        console.log('Order placed successfully:', order._id);
         
         // Notify seller
-        try {
-          await fetch(`${API_URL}/order/notify-seller/${order._id}`, {
-            method: 'PUT'
-          });
-        } catch (err) {
-          console.log('Seller notification failed (non-critical):', err);
-        }
+        await fetch(`${API_URL}/order/notify-seller/${order._id}`, {
+          method: 'PUT'
+        });
 
         clearCart();
         router.push(`/user/ordertracking?orderId=${order._id}`);
       } else {
-        const errorText = await response.text();
-        console.error('Order placement failed:', errorText);
-        throw new Error(`Failed to place order: ${errorText}`);
+        throw new Error('Failed to place order');
       }
     } catch (error) {
       console.error("Error placing order:", error);
@@ -380,23 +292,9 @@ const CheckOut = () => {
 
   // Handle online payment
   const handleOnlinePayment = async () => {
-    console.log('Initiating online payment...');
-    setProcessingPayment(true);
-    
-    try {
-      const secret = await getPaymentIntent();
-      if (secret) {
-        console.log('Payment intent received, moving to payment step');
-        setCurrentStep(4);
-      } else {
-        console.error('Failed to get payment intent');
-        alert('Unable to initialize payment. Please try again or use Cash on Delivery.');
-      }
-    } catch (error) {
-      console.error('Online payment error:', error);
-      alert('Payment initialization failed. Please try Cash on Delivery.');
-    } finally {
-      setProcessingPayment(false);
+    const secret = await getPaymentIntent();
+    if (secret) {
+      setCurrentStep(4); // Show payment gateway
     }
   };
 
@@ -414,30 +312,45 @@ const CheckOut = () => {
     }
   };
 
-  if (loading || authLoading || !cartLoaded) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {!cartLoaded ? 'Loading cart...' : 'Loading...'}
-          </p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (!currentUser || !loggedIn) {
-    return null; // Will redirect to login
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Please login to continue</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex justify-between items-center">
-            {steps.map((step, index) => (
+          <div className="flex items-center justify-between max-w-3xl mx-auto">
+            {[
+              { num: 1, label: 'Address', icon: <IconMapPin size={20} /> },
+              { num: 2, label: 'Delivery', icon: <IconTruck size={20} /> },
+              { num: 3, label: 'Payment', icon: <IconCreditCard size={20} /> },
+              { num: 4, label: 'Confirm', icon: <IconCheck size={20} /> }
+            ].map((step, index) => (
               <React.Fragment key={step.num}>
                 <div className="flex flex-col items-center">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -923,20 +836,18 @@ const CheckOut = () => {
                     onClick={() => {
                       if (currentStep === 3) {
                         if (paymentMethod === 'cod') {
-                          console.log('COD selected, moving to confirmation');
                           setCurrentStep(4);
                         } else {
-                          console.log('Online payment selected:', paymentMethod);
                           handleOnlinePayment();
                         }
                       } else {
                         setCurrentStep(currentStep + 1);
                       }
                     }}
-                    disabled={!canProceedToStep(currentStep + 1) || processingPayment}
+                    disabled={!canProceedToStep(currentStep + 1)}
                     className="ml-auto bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    {processingPayment ? 'Processing...' : 'Continue'}
+                    Continue
                   </button>
                 )}
               </div>
@@ -946,122 +857,42 @@ const CheckOut = () => {
           {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg">Order Summary</h3>
-                <button 
-                  onClick={() => {
-                    const stored = localStorage.getItem('cartItems');
-                    if (stored) {
-                      const parsed = JSON.parse(stored);
-                      setCartItems(parsed);
-                      console.log('🔄 Manually refreshed cart:', parsed.length, 'items');
-                    }
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                  title="Refresh cart"
-                >
-                  🔄 Refresh
-                </button>
-              </div>
+              <h3 className="font-bold text-lg mb-4">Order Summary</h3>
               
               {/* Cart Items */}
               <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                {!cartLoaded ? (
-                  <div className="text-center py-4">
-                    <div className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                {cartItems.map((item, index) => (
+                  <div key={index} className="flex gap-3">
+                    <img
+                      src={item.image ? `${API_URL}/${item.image}` : '/placeholder.jpg'}
+                      alt={item.pname}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium line-clamp-2">{item.pname}</p>
+                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      <p className="text-sm font-semibold">₹{item.pprice * item.quantity}</p>
                     </div>
                   </div>
-                ) : (() => {
-                    // CRITICAL: Check localStorage directly if cartItems is empty
-                    let itemsToDisplay = cartItems;
-                    
-                    if (!itemsToDisplay || itemsToDisplay.length === 0) {
-                      console.log('⚠️ cartItems empty, checking localStorage directly...');
-                      try {
-                        const stored = localStorage.getItem('cartItems');
-                        if (stored) {
-                          itemsToDisplay = JSON.parse(stored);
-                          console.log('💾 Found', itemsToDisplay.length, 'items in localStorage');
-                          // Update state for next render
-                          setTimeout(() => setCartItems(itemsToDisplay), 0);
-                        }
-                      } catch (e) {
-                        console.error('❌ localStorage read error:', e);
-                      }
-                    }
-                    
-                    if (!itemsToDisplay || itemsToDisplay.length === 0) {
-                      return (
-                        <div className="text-center py-4">
-                          <p className="text-gray-500 text-sm">Your cart is empty</p>
-                          <p className="text-xs text-gray-400 mt-1">Add items from home page</p>
-                        </div>
-                      );
-                    }
-                    
-                    console.log('🎨 Rendering', itemsToDisplay.length, 'items in Order Summary');
-                    return itemsToDisplay.map((item, index) => {
-                      const itemImage = item.images && item.images[0] 
-                        ? `${API_URL}/${item.images[0]}` 
-                        : (item.image ? `${API_URL}/${item.image}` : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3C/svg%3E');
-                      
-                      return (
-                        <div key={`${item._id}-${index}`} className="flex gap-3">
-                          <img
-                            src={itemImage}
-                            alt={item.pname || 'Product'}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium line-clamp-2">{item.pname || item.title}</p>
-                            <p className="text-sm text-gray-500">Qty: {item.quantity || 1}</p>
-                            <p className="text-sm font-semibold">₹{(item.pprice || item.price || 0) * (item.quantity || 1)}</p>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()
-                }
+                ))}
               </div>
 
               {/* Price Breakdown */}
               <div className="border-t pt-4 space-y-2">
-                {(() => {
-                  // Use cartItems or fallback to localStorage
-                  let items = cartItems;
-                  if (!items || items.length === 0) {
-                    try {
-                      const stored = localStorage.getItem('cartItems');
-                      if (stored) items = JSON.parse(stored);
-                    } catch (e) {}
-                  }
-                  
-                  const itemCount = (items || []).reduce((acc, item) => acc + (item.quantity || 1), 0);
-                  const subtotal = (items || []).reduce((acc, item) => 
-                    acc + ((item.pprice || item.price || 0) * (item.quantity || 1)), 0
-                  );
-                  
-                  return (
-                    <>
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal ({itemCount} items)</span>
-                        <span>₹{subtotal || 0}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Delivery Charges</span>
-                        <span className={deliveryCharge === 0 ? 'text-green-600' : ''}>
-                          {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                        <span>Total</span>
-                        <span>₹{(subtotal || 0) + deliveryCharge}</span>
-                      </div>
-                    </>
-                  );
-                })()}
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} items)</span>
+                  <span>₹{getCartTotal()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delivery Charges</span>
+                  <span className={deliveryCharge === 0 ? 'text-green-600' : ''}>
+                    {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                  <span>Total</span>
+                  <span>₹{getCartTotal() + deliveryCharge}</span>
+                </div>
               </div>
 
               {/* Delivery Info */}
@@ -1087,4 +918,4 @@ const CheckOut = () => {
   );
 };
 
-export default CheckOut;
+export default MultiStepCheckout;

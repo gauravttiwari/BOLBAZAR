@@ -66,13 +66,22 @@ const Home = () => {
 
   const fetchProducts = async () => {
     try {
+      console.log('🏠 Home: Fetching products...');
       const res = await fetch('http://localhost:5000/product/getall');
       if (res.ok) {
         const data = await res.json();
+        console.log(`✅ Home: Got ${data.length} products`);
+        if (data.length > 0) {
+          console.log('📦 Sample product:', data[0]);
+        } else {
+          console.warn('⚠️ No products available in database');
+        }
         setProducts(data);
+      } else {
+        console.error('❌ Home: Failed to fetch - Status:', res.status);
       }
     } catch (error) {
-      console.error('Failed to fetch products:', error);
+      console.error('❌ Home: Failed to fetch products:', error);
     } finally {
       setLoading(false);
     }
@@ -255,11 +264,16 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : products.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 {products.slice(0, 6).map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-2">📦 No products available yet</p>
+                <p className="text-sm text-gray-400">Sellers can add products to get started</p>
               </div>
             )}
           </div>

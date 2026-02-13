@@ -4,12 +4,38 @@ import Link from "next/link";
 import useCartContext from "@/context/CartContext";
 
 const ProductCard = ({ product, showAddToCart = true }) => {
-  const { addItemToCart, isInCart } = useCartContext();
+  const { addItemToCart, isInCart, cartItems } = useCartContext();
+  const [imageError, setImageError] = React.useState(false);
+  const [isAdded, setIsAdded] = React.useState(false);
+
+  // Check if item is in cart whenever cartItems changes
+  React.useEffect(() => {
+    const inCart = isInCart(product._id);
+    console.log(`🎯 ProductCard ${product.pname} - In cart:`, inCart);
+    setIsAdded(inCart);
+  }, [cartItems, product._id, isInCart]);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('🛒 Adding to cart:', product.pname);
     addItemToCart(product);
+    setIsAdded(true);
+  };
+
+  const getImageSrc = () => {
+    if (imageError) {
+      return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+    }
+    if (product.images && product.images.length > 0) {
+      return `http://localhost:5000/${product.images[0]}`;
+    }
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+  };
+
+  const handleImageError = () => {
+    console.warn('Image failed to load for product:', product.pname);
+    setImageError(true);
   };
 
   const discountPercent = product.originalPrice && product.pprice
@@ -25,9 +51,10 @@ const ProductCard = ({ product, showAddToCart = true }) => {
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-gray-50 p-4">
           <img
-            src={product.images ? `http://localhost:5000/${product.images}` : '/placeholder.png'}
+            src={getImageSrc()}
             alt={product.pname || product.title}
             className="product-image w-full h-full object-contain"
+            onError={handleImageError}
           />
           
           {/* Discount Badge */}
@@ -42,14 +69,14 @@ const ProductCard = ({ product, showAddToCart = true }) => {
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button
                 onClick={handleAddToCart}
-                disabled={isInCart && isInCart(product._id)}
+                disabled={isAdded}
                 className={`w-full py-2 rounded-sm text-sm font-medium transition-colors ${
-                  isInCart && isInCart(product._id)
+                  isAdded
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : 'bg-secondary hover:bg-secondary-dark text-white'
                 }`}
               >
-                {isInCart && isInCart(product._id) ? '✓ Added to Cart' : 'Add to Cart'}
+                {isAdded ? '✓ Added to Cart' : 'Add to Cart'}
               </button>
             </div>
           )}

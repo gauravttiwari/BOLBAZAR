@@ -139,5 +139,145 @@ router.post('/authenticate', async (req, res) => {
     }
 })
 
+// Address Management Routes
+
+// Add new address
+router.post('/address/add/:userId', async (req, res) => {
+    try {
+        const user = await Model.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // If this is the first address or marked as default, set it as default
+        if (user.addresses.length === 0 || req.body.isDefault) {
+            user.addresses.forEach(addr => addr.isDefault = false);
+            req.body.isDefault = true;
+        }
+
+        user.addresses.push(req.body);
+        await user.save();
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Error adding address:', err);
+        res.status(500).json({ message: 'Error adding address', error: err.message });
+    }
+});
+
+// Get all addresses for a user
+router.get('/address/getall/:userId', async (req, res) => {
+    try {
+        const user = await Model.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.status(200).json(user.addresses || []);
+    } catch (err) {
+        console.error('Error fetching addresses:', err);
+        res.status(500).json({ message: 'Error fetching addresses', error: err.message });
+    }
+});
+
+// Update address
+router.put('/address/update/:userId/:addressId', async (req, res) => {
+    try {
+        const user = await Model.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const address = user.addresses.id(req.params.addressId);
+        if (!address) {
+            return res.status(404).json({ message: 'Address not found' });
+        }
+
+        // If marking as default, unset other defaults
+        if (req.body.isDefault) {
+            user.addresses.forEach(addr => addr.isDefault = false);
+        }
+
+        Object.assign(address, req.body);
+        await user.save();
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Error updating address:', err);
+        res.status(500).json({ message: 'Error updating address', error: err.message });
+    }
+});
+
+// Delete address
+router.delete('/address/delete/:userId/:addressId', async (req, res) => {
+    try {
+        const user = await Model.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.addresses.pull(req.params.addressId);
+        
+        // If deleted address was default and there are more addresses, set first as default
+        if (user.addresses.length > 0 && !user.addresses.some(addr => addr.isDefault)) {
+            user.addresses[0].isDefault = true;
+        }
+        
+        await user.save();
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Error deleting address:', err);
+        res.status(500).json({ message: 'Error deleting address', error: err.message });
+    }
+});
+
+// Set default address
+router.put('/address/setdefault/:userId/:addressId', async (req, res) => {
+    try {
+        const user = await Model.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Unset all defaults
+        user.addresses.forEach(addr => addr.isDefault = false);
+        
+        // Set new default
+        const address = user.addresses.id(req.params.addressId);
+        if (!address) {
+            return res.status(404).json({ message: 'Address not found' });
+        }
+        address.isDefault = true;
+        
+        await user.save();
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Error setting default address:', err);
+        res.status(500).json({ message: 'Error setting default address', error: err.message });
+    }
+});
+
+// Verify pincode for delivery (Mock implementation)
+router.get('/verify-pincode/:pincode', async (req, res) => {
+    try {
+        const pincode = req.params.pincode;
+        
+        // Mock pincode verification - In production, integrate with courier API
+        if (pincode.length === 6 && /^\d+$/.test(pincode)) {
+            // Simulate delivery availability based on pincode
+            const isDeliverable = parseInt(pincode[0]) <= 7; // Mock logic
+            
+            res.status(200).json({
+                deliverable: isDeliverable,
+                estimatedDays: isDeliverable ? Math.floor(Math.random() * 5) + 3 : null,
+                message: isDeliverable ? 'Delivery available' : 'Delivery not available in this area'
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid pincode format' });
+        }
+    } catch (err) {
+        console.error('Error verifying pincode:', err);
+        res.status(500).json({ message: 'Error verifying pincode', error: err.message });
+    }
+});
+
 
 module.exports = router;
+

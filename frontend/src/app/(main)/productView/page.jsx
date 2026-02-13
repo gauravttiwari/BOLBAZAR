@@ -108,14 +108,19 @@ const ProductView = () => {
 
   const fetchProducts = async () => {
     try {
+      console.log('🔄 Fetching all products...');
       const res = await fetch('http://localhost:5000/product/getall');
       if (res.ok) {
         const data = await res.json();
+        console.log('✅ Products fetched:', data.length, 'products');
+        console.log('📦 Product data:', data);
         setMasterList(data);
         setProductList(data);
+      } else {
+        console.error('❌ Failed to fetch products - Status:', res.status);
       }
     } catch (error) {
-      console.error('Failed to fetch products:', error);
+      console.error('❌ Failed to fetch products:', error);
     } finally {
       setLoading(false);
     }
@@ -400,9 +405,16 @@ const ProductView = () => {
                     <Link key={product._id} href={`/productDetail/${product._id}`}>
                       <div className="bg-white rounded-sm shadow-card p-4 flex gap-4 hover:shadow-card-hover transition-shadow">
                         <img
-                          src={product.images ? `http://localhost:5000/${product.images}` : '/placeholder.png'}
+                          src={
+                            product.images && product.images.length > 0
+                              ? `http://localhost:5000/${product.images[0]}`
+                              : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
+                          }
                           alt={product.pname}
                           className="w-32 h-32 object-contain flex-shrink-0"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                          }}
                         />
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-800 mb-1">{product.pname}</h3>
