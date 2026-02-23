@@ -485,4 +485,22 @@ router.get('/tracking/:id', async (req, res) => {
     }
 });
 
+// Cancel order by ID
+router.patch('/cancel/:id', async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const updatedOrder = await Model.findByIdAndUpdate(
+            orderId,
+            { status: 'cancelled', $push: { statusHistory: { status: 'cancelled', timestamp: new Date(), note: 'Order cancelled by user' } } },
+            { new: true }
+        );
+        if (!updatedOrder) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        res.status(200).json(updatedOrder);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to cancel order', error: err });
+    }
+});
+
 module.exports = router;

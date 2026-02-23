@@ -127,6 +127,28 @@ const OrderTracking = () => {
     );
   }
 
+  // Cancel order handler
+  const handleCancelOrder = async () => {
+    if (!selectedOrder?._id) return;
+    try {
+      const response = await fetch(`${API_URL}/order/cancel/${selectedOrder._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const updated = { ...selectedOrder, status: "cancelled" };
+        setSelectedOrder(updated);
+        setOrder(updated);
+        setOrders((prev) => prev.map((o) => (o._id === updated._id ? updated : o)));
+        alert("Order cancelled successfully.");
+      } else {
+        alert("Failed to cancel order.");
+      }
+    } catch (err) {
+      alert("Error cancelling order.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
@@ -371,7 +393,9 @@ const OrderTracking = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span className="text-sm text-green-700">
-                        Paid via <span className="font-medium">{selectedOrder.paymentDetails?.payment_method_types?.[0] || "Card"}</span>
+                        {selectedOrder.paymentDetails?.payment_method_types?.[0] === "cod" || selectedOrder.paymentMethod === "cod" || selectedOrder.paymentMethod === "COD"
+                          ? "Cash on Delivery"
+                          : `Paid via ${selectedOrder.paymentDetails?.payment_method_types?.[0]?.charAt(0).toUpperCase() + selectedOrder.paymentDetails?.payment_method_types?.[0]?.slice(1) || "Card"}`}
                       </span>
                     </div>
                   </div>
@@ -391,6 +415,18 @@ const OrderTracking = () => {
                     </svg>
                     Download Invoice
                   </button>
+                  {/* Cancel Order Button: show if not delivered/cancelled */}
+                  {selectedOrder.status !== "delivered" && selectedOrder.status !== "cancelled" && (
+                    <button
+                      className="flex-1 min-w-[150px] px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                      onClick={handleCancelOrder}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancel Order
+                    </button>
+                  )}
                 </div>
               </>
             )}
