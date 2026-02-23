@@ -71,6 +71,9 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("cartItems");
+    }
   };
 
   const isInCart = (itemId) => {
@@ -97,6 +100,7 @@ export const CartProvider = ({ children }) => {
         cartOpen,
         setCartOpen,
         cartItems,
+        setCartItems, // Exposed for manual refresh in checkout
         addItemToCart,
         removeItemFromCart,
         clearCart,

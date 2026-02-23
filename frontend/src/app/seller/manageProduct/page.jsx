@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -15,6 +15,7 @@ const ManageProduct = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [refreshCount, setRefreshCount] = useState(0);
   const { currentSeller, sellerReady } = useSellerContext();
   const router = useRouter();
 
@@ -24,44 +25,57 @@ const ManageProduct = () => {
     }
   }, [sellerReady, currentSeller, router]);
 
-  const fetchProductData = async () => {
+  const fetchProductData = useCallback(async () => {
+    console.log('[DEBUG] fetchProductData called. currentSeller:', currentSeller);
     if (!currentSeller?._id || !currentSeller?.token) {
       console.log('⚠️ Seller not logged in or missing token');
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     console.log('🔄 Fetching seller products...');
-    
     try {
       const res = await fetch(`${API_URL}/product/getbyseller`, {
         headers: {
           'x-auth-token': currentSeller.token
         }
       });
-      
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`✅ Seller has ${data.length} products`);
-        console.log('📦 Products:', data);
+      let data = [];
+      try {
+        data = await res.json();
+      } catch (e) {
+        console.error('[DEBUG] Failed to parse response as JSON:', e);
+        data = [];
+      }
+      console.log('[DEBUG] Parsed data:', data);
+      if (res.ok && Array.isArray(data)) {
         setProductList(data);
+        console.log(`✅ Seller has ${data.length} products`);
+        console.log('[DEBUG] setProductList called with:', data);
       } else {
-        console.error('❌ Failed to fetch seller products - Status:', res.status);
+        setProductList([]);
         toast.error('Failed to load products');
+        console.error('❌ Failed to fetch seller products - Status:', res.status, data);
       }
     } catch (error) {
+      setProductList([]);
       console.error('❌ Error fetching products:', error);
       toast.error("Failed to load products");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentSeller]);
 
   useEffect(() => {
+    console.log('[DEBUG] useEffect triggered. currentSeller:', currentSeller, 'refreshCount:', refreshCount);
     if (currentSeller?._id) {
+      console.log('[DEBUG] Calling fetchProductData with currentSeller:', currentSeller);
       fetchProductData();
+    } else {
+      console.log('[DEBUG] currentSeller missing _id, not fetching products.');
     }
-  }, [currentSeller]);
+  }, [currentSeller, fetchProductData, refreshCount]);
 
   const confirmDelete = (product) => {
     setProductToDelete(product);
@@ -122,7 +136,7 @@ const ManageProduct = () => {
       {/* Main Content */}
       <div className="p-4 xl:ml-80">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col gap-2">
           <nav aria-label="breadcrumb" className="w-max">
             <ol className="flex flex-wrap items-center w-full bg-opacity-60 rounded-md bg-transparent p-0 transition-all">
               <li className="flex items-center">
@@ -138,15 +152,28 @@ const ManageProduct = () => {
           </nav>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-2 gap-4">
             <h1 className="text-2xl font-bold text-gray-900">Manage Products</h1>
-            <Link
-              href="/seller/addProduct"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
-              </svg>
-              Add New Product
-            </Link>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRefreshCount(c => c + 1)}
+                className="inline-flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all"
+                title="Refresh Products"
+                type="button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 017.5-7.5c2.485 0 4.69 1.14 6.09 2.91M19.5 12a7.5 7.5 0 01-7.5 7.5c-2.485 0-4.69-1.14-6.09-2.91M4.5 12H2.25m0 0v-2.25m0 2.25v2.25M19.5 12h2.25m0 0v-2.25m0 2.25v2.25" />
+                </svg>
+                Refresh
+              </button>
+              <Link
+                href="/seller/addProduct"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
+                </svg>
+                Add New Product
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -261,8 +288,19 @@ const ManageProduct = () => {
 
         {/* Products Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            <button
+              onClick={fetchProductData}
+              className="inline-flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all"
+              title="Refresh Products"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 017.5-7.5c2.485 0 4.69 1.14 6.09 2.91M19.5 12a7.5 7.5 0 01-7.5 7.5c-2.485 0-4.69-1.14-6.09-2.91M4.5 12H2.25m0 0v-2.25m0 2.25v2.25M19.5 12h2.25m0 0v-2.25m0 2.25v2.25" />
+              </svg>
+              Refresh
+            </button>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">

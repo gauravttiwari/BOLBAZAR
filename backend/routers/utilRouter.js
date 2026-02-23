@@ -36,7 +36,11 @@ const generateOTP = () => {
 }
 
 router.post('/uploadfile', uploader.single('myfile'), (req, res) => {
-    res.json({status : 'success'});
+    if (!req.file) {
+        return res.status(400).json({ status: 'error', message: 'No file uploaded' });
+    }
+    // Return the relative path to the uploaded file for frontend use
+    res.json({ status: 'success', url: `static/uploads/${req.file.filename}` });
 })
 
 router.post('/sendotp', (req, res) => {

@@ -468,7 +468,7 @@ export const VoiceProvider = ({ children }) => {
       return;
     }
 
-    if (lowerTranscript.includes('open about page') || lowerTranscript.includes('about page')) {
+    if (lowerTranscript.includes('open about page') || lowerTranscript.includes('about page') || lowerTranscript.includes('about us')) {
       console.log('✅ Matched: Open about page');
       voiceResponse('Opening about page');
       triggerModal('Navigating...', 'Opening about page');

@@ -1,3 +1,4 @@
+"use client";
 const { useRouter } = require("next/navigation");
 const { createContext, useState, useContext, useEffect } = require("react");
 

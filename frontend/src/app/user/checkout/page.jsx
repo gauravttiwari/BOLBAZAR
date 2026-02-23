@@ -18,41 +18,50 @@ const appearance = {
 
 const CheckOut = () => {
   const router = useRouter();
-  const { cartItems: contextCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
+  const { cartItems, setCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
+
+  // Debug: Log cartItems on every render
+  console.log('[DEBUG] cartItems (context):', cartItems);
+
+  // Debug: Log localStorage cartItems on every render (client only)
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('cartItems');
+      console.log('[DEBUG] cartItems (localStorage):', stored ? JSON.parse(stored) : 'null');
+    } catch (e) {
+      console.log('[DEBUG] Error reading cartItems from localStorage:', e);
+    }
+  }
+
+    // Ensure cart is restored from localStorage if context is empty
+    // Always sync cart from localStorage on mount and when page is shown (handles browser navigation)
+    useEffect(() => {
+      const syncCart = () => {
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('cartItems');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setCartItems(parsed);
+              console.log('[DEBUG] useEffect syncCart: setCartItems(parsed)', parsed);
+            } catch (e) {
+              console.log('[DEBUG] Error parsing cartItems in syncCart:', e);
+            }
+          } else {
+            console.log('[DEBUG] useEffect syncCart: No cartItems in localStorage');
+          }
+        }
+      };
+      syncCart();
+      window.addEventListener('pageshow', syncCart);
+      return () => window.removeEventListener('pageshow', syncCart);
+    }, [setCartItems]);
   const { currentUser, loggedIn, loading: authLoading } = useAppContext();
   
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [cartLoaded, setCartLoaded] = useState(false);
-  const [cartItems, setCartItems] = useState([]);  // Local state
-  
-  // Key change: Use both CartContext AND localStorage
-  useEffect(() => {
-    console.log('🔄 Checkout cart sync started');
-    console.log('📦 Context has:', contextCartItems?.length || 0, 'items');
-    
-    // ALWAYS read from localStorage directly
-    try {
-      const stored = localStorage.getItem('cartItems');
-      console.log('💾 Raw localStorage:', stored?.substring(0, 100));
-      
-      if (stored && stored !== 'null' && stored !== '[]') {
-        const parsed = JSON.parse(stored);
-        console.log('✅ Parsed:', parsed.length, 'items');
-        console.log('📋 Items:', parsed.map(i => i.pname).join(', '));
-        setCartItems(parsed);
-      } else {
-        console.log('⚠️ localStorage empty or invalid');
-        setCartItems([]);
-      }
-    } catch (error) {
-      console.error('❌ Parse error:', error);
-      setCartItems([]);
-    }
-    
-    setCartLoaded(true);
-  }, [contextCartItems]); // Re-run when context updates
+
   
   // Address state
   const [addresses, setAddresses] = useState([]);
@@ -65,7 +74,6 @@ const CheckOut = () => {
     state: '',
     city: '',
     address: '',
-    locality: '',
     landmark: '',
     addressType: 'home'
   });
@@ -414,13 +422,13 @@ const CheckOut = () => {
     }
   };
 
-  if (loading || authLoading || !cartLoaded) {
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            {!cartLoaded ? 'Loading cart...' : 'Loading...'}
+            Loading...
           </p>
         </div>
       </div>
@@ -966,64 +974,36 @@ const CheckOut = () => {
               
               {/* Cart Items */}
               <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                {!cartLoaded ? (
-                  <div className="text-center py-4">
-                    <div className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                    </div>
-                  </div>
-                ) : (() => {
-                    // CRITICAL: Check localStorage directly if cartItems is empty
-                    let itemsToDisplay = cartItems;
-                    
-                    if (!itemsToDisplay || itemsToDisplay.length === 0) {
-                      console.log('⚠️ cartItems empty, checking localStorage directly...');
-                      try {
-                        const stored = localStorage.getItem('cartItems');
-                        if (stored) {
-                          itemsToDisplay = JSON.parse(stored);
-                          console.log('💾 Found', itemsToDisplay.length, 'items in localStorage');
-                          // Update state for next render
-                          setTimeout(() => setCartItems(itemsToDisplay), 0);
-                        }
-                      } catch (e) {
-                        console.error('❌ localStorage read error:', e);
-                      }
-                    }
-                    
-                    if (!itemsToDisplay || itemsToDisplay.length === 0) {
-                      return (
-                        <div className="text-center py-4">
-                          <p className="text-gray-500 text-sm">Your cart is empty</p>
-                          <p className="text-xs text-gray-400 mt-1">Add items from home page</p>
+                {(() => {
+                  let itemsToDisplay = cartItems;
+                  if (!itemsToDisplay || itemsToDisplay.length === 0) {
+                    return (
+                      <div className="text-center py-4">
+                        <p className="text-gray-500 text-sm">Your cart is empty</p>
+                        <p className="text-xs text-gray-400 mt-1">Add items from home page</p>
+                      </div>
+                    );
+                  }
+                  return itemsToDisplay.map((item, index) => {
+                    const itemImage = item.images && item.images[0] 
+                      ? `${API_URL}/${item.images[0]}` 
+                      : (item.image ? `${API_URL}/${item.image}` : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3C/svg%3E');
+                    return (
+                      <div key={`${item._id}-${index}`} className="flex gap-3">
+                        <img
+                          src={itemImage}
+                          alt={item.pname || 'Product'}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium line-clamp-2">{item.pname || item.title}</p>
+                          <p className="text-sm text-gray-500">Qty: {item.quantity || 1}</p>
+                          <p className="text-sm font-semibold">₹{(item.pprice || item.price || 0) * (item.quantity || 1)}</p>
                         </div>
-                      );
-                    }
-                    
-                    console.log('🎨 Rendering', itemsToDisplay.length, 'items in Order Summary');
-                    return itemsToDisplay.map((item, index) => {
-                      const itemImage = item.images && item.images[0] 
-                        ? `${API_URL}/${item.images[0]}` 
-                        : (item.image ? `${API_URL}/${item.image}` : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3C/svg%3E');
-                      
-                      return (
-                        <div key={`${item._id}-${index}`} className="flex gap-3">
-                          <img
-                            src={itemImage}
-                            alt={item.pname || 'Product'}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium line-clamp-2">{item.pname || item.title}</p>
-                            <p className="text-sm text-gray-500">Qty: {item.quantity || 1}</p>
-                            <p className="text-sm font-semibold">₹{(item.pprice || item.price || 0) * (item.quantity || 1)}</p>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()
-                }
+                      </div>
+                    );
+                  });
+                })()}
               </div>
 
               {/* Price Breakdown */}

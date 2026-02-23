@@ -95,20 +95,22 @@ const SellerLogin = () => {
         toast.success("✨ Passwordless Login Successful!");
       }
       
-      // Store seller data
-      const sellerData = { 
-        _id: data._id,
-        fname: data.fname, 
-        lname: data.lname, 
+      // Always include token in seller object for context and sessionStorage
+      const token = data.token || (data.seller && data.seller.token);
+      const sellerData = {
+        _id: data._id || data.seller?._id,
+        fname: data.fname || data.seller?.fname,
+        lname: data.lname || data.seller?.lname,
         email: email,
-        avatar: data.avatar
+        avatar: data.avatar || data.seller?.avatar,
+        token: token
       };
       sessionStorage.setItem('seller', JSON.stringify(sellerData));
-      
+
       // Update SellerContext
       setCurrentSeller(sellerData);
       setSellerLoggedIn(true);
-      
+
       // Redirect to dashboard
       console.log("🚀 Redirecting seller to dashboard...");
       console.log("Seller data:", sellerData);

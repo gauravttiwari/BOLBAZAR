@@ -5,6 +5,12 @@ const { model } = require('mongoose');
 
 router.post('/add', (req, res) => {
     console.log(req.body);
+    // Calculate total from items
+    const items = req.body.items || [];
+    const total = items.reduce((sum, item) => sum + ((item.price ?? item.pprice) * (item.quantity || 1)), 0);
+    // Set paymentDetails.amount (Stripe expects paise, so multiply by 100)
+    if (!req.body.paymentDetails) req.body.paymentDetails = {};
+    req.body.paymentDetails.amount = Math.round(total * 100);
     new Model(req.body).save()
         .then((result) => {
             console.log(result);

@@ -60,20 +60,22 @@ const AddProduct = () => {
         return;
       }
 
+      // Remove any accidental seller field from values
+      const { seller, ...rest } = values;
       const submitData = {
-        ...values,
+        ...rest,
         features: features.filter(f => f.name && f.value),
         images: [uploadedImage],
-        sellerId: currentSeller._id,
       };
 
       try {
+        console.log('[DEBUG] Submitting product. Token:', currentSeller?.token);
         const res = await fetch(`${API_URL}/product/add`, {
           method: "POST",
           body: JSON.stringify(submitData),
           headers: {
             "Content-type": "application/json",
-            "x-auth-token": currentSeller.token,
+            "x-auth-token": currentSeller?.token,
           },
         });
 
@@ -84,7 +86,8 @@ const AddProduct = () => {
           setFeatures([{ name: "", value: "" }]);
           router.push("/seller/manageProduct");
         } else {
-          toast.error("Failed to add product");
+          const errorMsg = await res.text();
+          toast.error(`Failed to add product: ${errorMsg}`);
         }
       } catch (error) {
         console.error("Error adding product:", error);
@@ -108,7 +111,9 @@ const AddProduct = () => {
       });
 
       if (res.ok) {
-        setUploadedImage(file.name);
+        // Expecting backend to return { url: "uploads/filename.jpg" }
+        const data = await res.json();
+        setUploadedImage(data.url); // store the URL/path, not just file name
         toast.success("Image uploaded successfully!");
       } else {
         toast.error("Failed to upload image");
@@ -401,7 +406,7 @@ const AddProduct = () => {
                   ) : uploadedImage ? (
                     <div className="flex flex-col items-center">
                       <img
-                        src={`${API_URL}/${uploadedImage}`}
+                        src={`${API_URL}/${uploadedImage.replace(/^static\//, '')}`}
                         alt="Uploaded"
                         className="h-32 w-32 object-cover rounded-lg mb-2"
                         onError={(e) => {
@@ -409,7 +414,7 @@ const AddProduct = () => {
                           e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2310b981' viewBox='0 0 24 24'%3E%3Cpath d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E";
                         }}
                       />
-                      <p className="text-sm text-emerald-600 font-medium">{uploadedImage}</p>
+                      <p className="text-sm text-emerald-600 font-medium">{uploadedImage.replace(/^static\//, '')}</p>
                       <p className="text-xs text-gray-500 mt-1">Click to change</p>
                     </div>
                   ) : (

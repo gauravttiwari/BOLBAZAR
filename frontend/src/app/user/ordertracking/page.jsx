@@ -318,7 +318,7 @@ const OrderTracking = () => {
                             {item.size && ` • Size: ${item.size}`}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-lg font-bold text-gray-900">₹{item.price || 0}</span>
+                            <span className="text-lg font-bold text-gray-900">₹{item.price ?? item.pprice ?? 0}</span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -345,16 +345,26 @@ const OrderTracking = () => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Delivery Charges</span>
-                      <span className="text-green-600">FREE</span>
+                      <span className="text-gray-900">
+                        ₹{selectedOrder.deliveryCharge !== undefined ? selectedOrder.deliveryCharge.toFixed(2) : "0.00"}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Discount</span>
-                      <span className="text-green-600">-₹0.00</span>
+                      <span className="text-green-600">-₹{selectedOrder.discount !== undefined ? selectedOrder.discount.toFixed(2) : "0.00"}</span>
                     </div>
                     <hr className="my-3" />
                     <div className="flex justify-between">
                       <span className="font-semibold text-gray-900">Total Amount</span>
-                      <span className="text-xl font-bold text-emerald-600">₹{((selectedOrder.paymentDetails?.amount || 0) / 100).toFixed(2)}</span>
+                      <span className="text-xl font-bold text-emerald-600">
+                        ₹{
+                          (
+                            ((selectedOrder.paymentDetails?.amount || 0) / 100) +
+                            (selectedOrder.deliveryCharge || 0) -
+                            (selectedOrder.discount || 0)
+                          ).toFixed(2)
+                        }
+                      </span>
                     </div>
                     <div className="mt-4 p-3 bg-green-50 rounded-lg flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
