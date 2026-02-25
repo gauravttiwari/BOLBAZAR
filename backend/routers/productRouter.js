@@ -67,9 +67,12 @@ router.get('/getbyid/:id',(req,res)=>{
 
 router.get('/getbyseller', verifyToken, (req, res) => {
     console.log('👤 GET /product/getbyseller - Seller ID:', req.user._id);
+    console.log('🔑 Token from header:', req.header('x-auth-token'));
+    console.log('🧑‍💻 Decoded user from token:', req.user);
     Model.find({seller : req.user._id})
         .then((result) => {
             console.log(`✅ Found ${result.length} products for seller ${req.user._id}`);
+            console.log('📦 Products:', result);
             res.status(200).json(result);
         }).catch((err) => {
             console.log('❌ Error fetching seller products:', err);

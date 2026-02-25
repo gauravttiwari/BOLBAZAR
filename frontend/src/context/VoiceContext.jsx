@@ -120,31 +120,42 @@ const pageDetails = [
   },
   {
     pageName: 'MyCart',
-    pagePath: '/admin/adminprofile'
+    pagePath: '/user/mycart'
   },
   {
-    pageName: 'cheakout',
-    pagePath: '/user/cheakout'
+    pageName: 'checkout',
+    pagePath: '/user/checkout'
   },
 ]
 
 const VoiceContext = createContext();
 
-export const VoiceProvider = ({ children }) => {
 
+
+export const VoiceProvider = ({ children }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  if (!isClient) return null;
+
+  // All browser-dependent hooks and logic must be inside this block
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return <VoiceProviderClient>{children}</VoiceProviderClient>;
+};
+
+// This component is only rendered on the client
+const VoiceProviderClient = ({ children }) => {
   const [showModal, setShowModal] = useState(false);
   const [showInstruction, setShowInstruction] = useState(false);
-
   const [modalOptions, setModalOptions] = useState({
     icon: <FaMicrophone size={50} />,
     title: '',
     description: '',
     centered: true
-  })
-
+  });
   const hasRun = useRef(false);
   const router = useRouter();
-
   const [voices, setVoices] = useState([]);
   const [speech, setSpeech] = useState(null);
 
@@ -168,11 +179,51 @@ export const VoiceProvider = ({ children }) => {
   }
 
   const commands = [
+    // Select product by name (navigate to product detail page, if implemented)
     {
-      command: 'Open :pageName page',
+      command: 'select *',
+      callback: (productName) => {
+        voiceResponse(`Selecting product ${productName}`);
+        // Example: router.push(`/productDetail/${productName}`) or trigger a search
+      }
+    },
+    // Add to cart (product detail page)
+    {
+      command: 'add to cart',
+      callback: () => {
+        voiceResponse('Adding product to cart');
+        window.dispatchEvent(new CustomEvent('voiceAddToCart'));
+      }
+    },
+    // Go to checkout
+    {
+      command: ['go to checkout', 'open checkout page', 'checkout', 'i want to checkout', 'i want to buy'],
+      callback: () => {
+        voiceResponse('Navigating to checkout');
+        router.push('/user/checkout');
+      }
+    },
+    // Place order/pay now (checkout page)
+    {
+      command: ['place order', 'pay now'],
+      callback: () => {
+        voiceResponse('Placing your order');
+        window.dispatchEvent(new CustomEvent('voicePlaceOrder'));
+      }
+    },
+    // Cancel order (order tracking page)
+    {
+      command: ['cancel my order', 'cancel order'],
+      callback: () => {
+        voiceResponse('Attempting to cancel your order');
+        window.dispatchEvent(new CustomEvent('voiceCancelOrder'));
+      }
+    },
+    // Navigation: open any page
+    {
+      command: 'open :pageName page',
       callback: (pageName) => {
-        console.log('🎯 Command matched: Open page -', pageName);
-        voicePageNavigator(pageName)
+        voicePageNavigator(pageName);
       }
     },
     {
@@ -224,7 +275,7 @@ export const VoiceProvider = ({ children }) => {
         voicePageNavigator('cheakout')
       }
     },
-    
+
     {
       command: 'open contact page',
       callback: (pageName) => {
@@ -346,8 +397,8 @@ export const VoiceProvider = ({ children }) => {
     resetTranscript,
     browserSupportsSpeechRecognition,
     finalTranscript
-  } = useSpeechRecognition({ 
-    commands, 
+  } = useSpeechRecognition({
+    commands,
     continuous: true,
     clearTranscriptOnListen: false
   });
@@ -377,7 +428,7 @@ export const VoiceProvider = ({ children }) => {
     console.log('🔍 Looking for page:', pageName);
     const page = pageDetails.find(page => pageName.toLowerCase().includes(page.pageName.toLowerCase()));
     console.log('📄 Found page:', page);
-    
+
     if (page) {
       console.log('✅ Navigating to:', page.pagePath);
       const message = `Navigating to ${pageName} page`;
@@ -427,7 +478,7 @@ export const VoiceProvider = ({ children }) => {
 
   useEffect(() => {
     if (!finalTranscript) return;
-    
+
     const lowerTranscript = finalTranscript.toLowerCase();
     console.log('🎯 Processing command:', lowerTranscript);
 
@@ -575,7 +626,7 @@ export const VoiceProvider = ({ children }) => {
       speech.rate = 1;
       speech.pitch = 1;
       speech.volume = 1;
-      
+
       // Resume listening after speech ends
       speech.onend = () => {
         if (wasListening) {
@@ -631,7 +682,7 @@ export const VoiceProvider = ({ children }) => {
       const availableVoices = synth.getVoices();
       setVoices(availableVoices);
       console.log('Available voices:', availableVoices.length);
-      
+
       if (speech && availableVoices.length > 0) {
         // Try to find an English voice
         const englishVoice = availableVoices.find(voice => voice.lang.includes('en'));
@@ -649,15 +700,15 @@ export const VoiceProvider = ({ children }) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const synth = window.speechSynthesis;
-      
+
       // Load voices immediately
       loadVoices();
-      
+
       // Also load when voices change
       if ("onvoiceschanged" in synth) {
         synth.onvoiceschanged = loadVoices;
       }
-      
+
       return () => {
         if (synth.onvoiceschanged) {
           synth.onvoiceschanged = null;

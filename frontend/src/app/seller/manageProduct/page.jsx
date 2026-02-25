@@ -36,6 +36,8 @@ const ManageProduct = () => {
     setLoading(true);
     console.log('🔄 Fetching seller products...');
     try {
+      console.log('[DEBUG] Fetching products with token:', currentSeller.token);
+      console.log('[DEBUG] Seller ID:', currentSeller._id);
       const res = await fetch(`${API_URL}/product/getbyseller`, {
         headers: {
           'x-auth-token': currentSeller.token
@@ -48,7 +50,7 @@ const ManageProduct = () => {
         console.error('[DEBUG] Failed to parse response as JSON:', e);
         data = [];
       }
-      console.log('[DEBUG] Parsed data:', data);
+      console.log('[DEBUG] Backend response:', data);
       if (res.ok && Array.isArray(data)) {
         setProductList(data);
         console.log(`✅ Seller has ${data.length} products`);

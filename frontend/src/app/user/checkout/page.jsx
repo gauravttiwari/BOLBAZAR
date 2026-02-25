@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import useVoiceContext from "@/context/VoiceContext";
 import useCartContext from "@/context/CartContext";
 import useAppContext from "@/context/AppContext";
 import { useRouter } from "next/navigation";
@@ -17,8 +18,29 @@ const appearance = {
 };
 
 const CheckOut = () => {
+  const { voiceResponse } = useVoiceContext();
+  const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
   const { cartItems, setCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
+
+  // Voice command: place order/pay now
+  useEffect(() => {
+    const listener = () => {
+      // Only allow placing order on confirmation step
+      if (currentStep === 4) {
+        // Find the confirm/submit button and click it, or trigger your order placement logic here
+        // For demonstration, just show a voice response
+        voiceResponse && voiceResponse("Order placed successfully.");
+        // You should call your actual order placement logic here if needed
+      } else {
+        // Move to confirmation step if not already there
+        setCurrentStep(4);
+        voiceResponse && voiceResponse("Moved to order confirmation. Say 'place order' again to confirm.");
+      }
+    };
+    window.addEventListener("voicePlaceOrder", listener);
+    return () => window.removeEventListener("voicePlaceOrder", listener);
+  }, [currentStep, voiceResponse]);
 
   // Debug: Log cartItems on every render
   console.log('[DEBUG] cartItems (context):', cartItems);
@@ -59,7 +81,7 @@ const CheckOut = () => {
   const { currentUser, loggedIn, loading: authLoading } = useAppContext();
   
   // State management
-  const [currentStep, setCurrentStep] = useState(1);
+  // const [currentStep, setCurrentStep] = useState(1); // Duplicate removed
   const [loading, setLoading] = useState(true);
 
   

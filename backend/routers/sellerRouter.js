@@ -233,7 +233,7 @@ router.post('/authenticate', (req, res) => {
         .then((result) => {
             if (result) {
                 console.log(result);
-                const { _id, fname, lname, email, avatar } = result
+                const { _id, fname, lname, email, avatar } = result;
                 const payload = { _id, fname, lname, email };
 
                 jwt.sign(
@@ -243,14 +243,24 @@ router.post('/authenticate', (req, res) => {
                     (err, token) => {
                         if (err) {
                             console.log(err);
-                            res.status(500).json({ message: 'error creating token' })
+                            res.status(500).json({ message: 'error creating token' });
                         } else {
-                            res.status(200).json({ token, fname, lname, avatar })
+                            res.status(200).json({
+                                message: 'Login successful',
+                                token,
+                                seller: {
+                                    _id,
+                                    fname,
+                                    lname,
+                                    email,
+                                    avatar
+                                }
+                            });
                         }
                     }
-                )
+                );
             }
-            else res.status(401).json({ message: 'Login Failed' })
+            else res.status(401).json({ message: 'Login Failed' });
         }).catch((err) => {
             console.log(err);
             res.status(500).json(err);

@@ -29,16 +29,17 @@ const ProductDetail = () => {
   const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const { loggedIn, currentUser } = useAppContext();
 
-  // Voice commands
+  // Voice commands: listen for global event
   useEffect(() => {
-    if (finalTranscript.includes("add to cart")) {
+    const listener = () => {
       if (productDetails) {
         addItemToCart({ ...productDetails, quantity });
-        voiceResponse(`${productDetails.pname} added to cart`);
+        voiceResponse && voiceResponse(`${productDetails.pname} added to cart`);
       }
-      resetTranscript();
-    }
-  }, [finalTranscript]);
+    };
+    window.addEventListener("voiceAddToCart", listener);
+    return () => window.removeEventListener("voiceAddToCart", listener);
+  }, [productDetails, quantity]);
 
   // Fetch product
   useEffect(() => {
