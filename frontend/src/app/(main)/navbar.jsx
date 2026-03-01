@@ -18,13 +18,80 @@ const Navbar = () => {
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (finalTranscript.includes('open cart') || finalTranscript.includes('open card')) {
+    const lower = finalTranscript.toLowerCase();
+    // Cart open/close
+    if (lower.includes('open cart') || lower.includes('open card')) {
       voiceResponse('Opening cart page.');
       setCartOpen(true);
       resetTranscript();
-    } else if (finalTranscript.includes('close cart') || finalTranscript.includes('close card')) {
+    } else if (lower.includes('close cart') || lower.includes('close card')) {
       voiceResponse('Closing cart page');
       setCartOpen(false);
+      resetTranscript();
+    }
+    // Voice search (English + Hindi)
+    else if (
+      lower.startsWith('search:') ||
+      lower.startsWith('search for') ||
+      lower.startsWith('find:') ||
+      lower.startsWith('find ') ||
+      lower.startsWith('खोजो:') ||
+      lower.startsWith('खोजो ') ||
+      lower.startsWith('सर्च:') ||
+      lower.startsWith('सर्च ')
+    ) {
+      let q = '';
+      if (lower.startsWith('search:')) q = lower.split('search:')[1]?.trim();
+      else if (lower.startsWith('search for')) q = lower.split('search for')[1]?.trim();
+      else if (lower.startsWith('find:')) q = lower.split('find:')[1]?.trim();
+      else if (lower.startsWith('find ')) q = lower.split('find ')[1]?.trim();
+      else if (lower.startsWith('खोजो:')) q = lower.split('खोजो:')[1]?.trim();
+      else if (lower.startsWith('खोजो ')) q = lower.split('खोजो ')[1]?.trim();
+      else if (lower.startsWith('सर्च:')) q = lower.split('सर्च:')[1]?.trim();
+      else if (lower.startsWith('सर्च ')) q = lower.split('सर्च ')[1]?.trim();
+      if (q) {
+        setSearchQuery(q);
+        voiceResponse('Searching for ' + q);
+        router.push(`/productView?search=${encodeURIComponent(q)}`);
+        resetTranscript();
+      }
+    }
+    // Voice command: Logout (English + Hindi)
+    else if (
+      lower.includes('logout') ||
+      lower.includes('log out') ||
+      lower.includes('sign out') ||
+      lower.includes('लॉगआउट') ||
+      lower.includes('लॉग आउट')
+    ) {
+      voiceResponse('Logging you out');
+      handleLogout();
+      resetTranscript();
+    }
+    // Voice command: Profile (English + Hindi)
+    else if (
+      lower.includes('profile') ||
+      lower.includes('my profile') ||
+      lower.includes('account') ||
+      lower.includes('प्रोफाइल') ||
+      lower.includes('मेरा प्रोफाइल')
+    ) {
+      voiceResponse('Opening your profile');
+      router.push('/user/profile');
+      resetTranscript();
+    }
+    // Voice command: Order tracking (English + Hindi)
+    else if (
+      lower.includes('track order') ||
+      lower.includes('order tracking') ||
+      lower.includes('my orders') ||
+      lower.includes('orders') ||
+      lower.includes('ऑर्डर ट्रैक') ||
+      lower.includes('मेरे ऑर्डर') ||
+      lower.includes('ऑर्डर')
+    ) {
+      voiceResponse('Opening your orders');
+      router.push('/user/orders');
       resetTranscript();
     }
   }, [finalTranscript]);

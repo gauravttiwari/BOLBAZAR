@@ -17,21 +17,23 @@ const InfoModal = ({ icon, title, description, showModal, setShowModal, centered
     }
   }, [showModal, duration]);
 
-  return <AnimatePresence>
-    {showModal && (
-      <motion.div
-        className={` ${centered ? 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2' : 'top-10 left-10'} flex flex-col items-center gap-3 column fixed z-30 bg-slate-600 opacity-25 text-white text-center p-10 rounded-xl`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <p>{icon}</p>
-        <h2 className='text-2xl font-bold'>{title}</h2>
-        <p>{description}</p>
-      </motion.div>
-    )}
-  </AnimatePresence>
+  return (
+    <AnimatePresence>
+      {showModal && (
+        <motion.div
+          className={` ${centered ? 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2' : 'top-10 left-10'} flex flex-col items-center gap-3 column fixed z-30 bg-slate-600 opacity-25 text-white text-center p-10 rounded-xl`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <p>{icon}</p>
+          <h2 className='text-2xl font-bold'>{title}</h2>
+          <p>{description}</p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 const InstructionModal = ({ setShowModal }) => {
@@ -130,9 +132,10 @@ const pageDetails = [
 
 const VoiceContext = createContext();
 
-
-
 export const VoiceProvider = ({ children }) => {
+  // Track if user requested to stop listening
+  const stopListeningRef = useRef(false);
+
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
@@ -141,11 +144,11 @@ export const VoiceProvider = ({ children }) => {
 
   // All browser-dependent hooks and logic must be inside this block
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  return <VoiceProviderClient>{children}</VoiceProviderClient>;
+  return <VoiceProviderClient stopListeningRef={stopListeningRef}>{children}</VoiceProviderClient>;
 };
 
 // This component is only rendered on the client
-const VoiceProviderClient = ({ children }) => {
+const VoiceProviderClient = ({ children, stopListeningRef }) => {
   const [showModal, setShowModal] = useState(false);
   const [showInstruction, setShowInstruction] = useState(false);
   const [modalOptions, setModalOptions] = useState({
@@ -179,31 +182,6 @@ const VoiceProviderClient = ({ children }) => {
   }
 
   const commands = [
-    // Select product by name (navigate to product detail page, if implemented)
-    {
-      command: 'select *',
-      callback: (productName) => {
-        voiceResponse(`Selecting product ${productName}`);
-        // Example: router.push(`/productDetail/${productName}`) or trigger a search
-      }
-    },
-    // Add to cart (product detail page)
-    {
-      command: 'add to cart',
-      callback: () => {
-        voiceResponse('Adding product to cart');
-        window.dispatchEvent(new CustomEvent('voiceAddToCart'));
-      }
-    },
-    // Go to checkout
-    {
-      command: ['go to checkout', 'open checkout page', 'checkout', 'i want to checkout', 'i want to buy'],
-      callback: () => {
-        voiceResponse('Navigating to checkout');
-        router.push('/user/checkout');
-      }
-    },
-    // Place order/pay now (checkout page)
     {
       command: ['place order', 'pay now'],
       callback: () => {
@@ -476,79 +454,45 @@ const VoiceProviderClient = ({ children }) => {
   }, [])
 
 
+
   useEffect(() => {
     if (!finalTranscript) return;
-
     const lowerTranscript = finalTranscript.toLowerCase();
     console.log('🎯 Processing command:', lowerTranscript);
 
-    // Navigation Commands
-    if (lowerTranscript.includes('open login page') || lowerTranscript.includes('login page')) {
-      console.log('✅ Matched: Open login page');
-      voiceResponse('Opening login page');
-      triggerModal('Navigating...', 'Opening login page');
-      router.push('/login');
+    // --- Global Voice Commands ---
+    // Cancel Order (Hindi + English)
+    if (
+      lowerTranscript.includes('cancel order') || lowerTranscript.includes('order cancel') ||
+      lowerTranscript.includes('ऑर्डर कैंसल') || lowerTranscript.includes('ऑर्डर रद्द') || lowerTranscript.includes('ऑर्डर हटाओ')
+    ) {
+      // Dispatch a custom event for order tracking page to handle
+      window.dispatchEvent(new CustomEvent('voice-cancel-order'));
+      voiceResponse('Do you want to cancel this order? Please say yes or no.');
+      triggerModal('Cancel Order', 'Say "yes" to confirm or "no" to abort.');
       resetTranscript();
       return;
     }
 
-    if (lowerTranscript.includes('open home page') || lowerTranscript.includes('home page')) {
-      console.log('✅ Matched: Open home page');
-      voiceResponse('Opening home page');
-      triggerModal('Navigating...', 'Opening home page');
-      router.push('/');
+    // Feedback / Help (Hindi + English)
+    if (
+      lowerTranscript.includes('feedback') || lowerTranscript.includes('suggestion') ||
+      lowerTranscript.includes('फीडबैक') || lowerTranscript.includes('सुझाव') ||
+      lowerTranscript.includes('help') || lowerTranscript.includes('मदद') || lowerTranscript.includes('सहायता')
+    ) {
+      // Open feedback/help modal or give a voice response
+      voiceResponse('Opening feedback and help. Please share your feedback or ask your question.');
+      triggerModal('Feedback / Help', 'Please share your feedback or ask your question.');
       resetTranscript();
       return;
     }
 
-    if (lowerTranscript.includes('open signup page') || lowerTranscript.includes('signup page') || lowerTranscript.includes('create account')) {
-      console.log('✅ Matched: Open signup page');
-      voiceResponse('Opening signup page');
-      triggerModal('Navigating...', 'Opening signup page');
-      router.push('/signup');
-      resetTranscript();
-      return;
-    }
+    // ...existing code...
 
-    if (lowerTranscript.includes('open contact page') || lowerTranscript.includes('contact page') || lowerTranscript.includes('contact you')) {
-      console.log('✅ Matched: Open contact page');
-      voiceResponse('Opening contact page');
-      triggerModal('Navigating...', 'Opening contact page');
-      router.push('/contact');
-      resetTranscript();
-      return;
-    }
-
-    if (lowerTranscript.includes('open about page') || lowerTranscript.includes('about page') || lowerTranscript.includes('about us')) {
-      console.log('✅ Matched: Open about page');
-      voiceResponse('Opening about page');
-      triggerModal('Navigating...', 'Opening about page');
-      router.push('/about');
-      resetTranscript();
-      return;
-    }
-
-    if (lowerTranscript.includes('show products') || lowerTranscript.includes('view products') || lowerTranscript.includes('product view') || lowerTranscript.includes('buy something')) {
-      console.log('✅ Matched: Show products');
-      voiceResponse('Showing all products');
-      triggerModal('Navigating...', 'Showing all products');
-      router.push('/productView');
-      resetTranscript();
-      return;
-    }
-
-    if (lowerTranscript.includes('open cart') || lowerTranscript.includes('my cart')) {
-      console.log('✅ Matched: Open cart');
-      voiceResponse('Opening your cart');
-      triggerModal('Navigating...', 'Opening your cart');
-      router.push('/MyCart');
-      resetTranscript();
-      return;
-    }
-
-    // Control Commands
-    if (lowerTranscript === 'start listening') {
-      voiceResponse('I am listening');
+    // If user says 'start listening' or similar, re-enable listening
+    if (lowerTranscript.includes('start listening') || lowerTranscript.includes('listen now') || lowerTranscript.includes('सुनो')) {
+      stopListeningRef.current = false;
+      voiceResponse('I am listening now');
       SpeechRecognition.startListening({ continuous: true });
       triggerModal('Voice Assistant', 'I am listening');
       resetTranscript();
@@ -556,6 +500,7 @@ const VoiceProviderClient = ({ children }) => {
     }
 
     if (lowerTranscript.includes('stop listening')) {
+      stopListeningRef.current = true;
       voiceResponse('Okay, I will stop listening now');
       SpeechRecognition.stopListening();
       triggerModal('Voice Assistant', 'Good Bye! Have a nice day!', false, <IconMicrophoneOff size={50} />);
@@ -616,30 +561,21 @@ const VoiceProviderClient = ({ children }) => {
   const voiceResponse = (text) => {
     if (typeof window !== 'undefined' && speech) {
       // Stop listening while speaking to prevent feedback loop
-      const wasListening = listening;
+      const wasListening = listening && !stopListeningRef.current;
       if (wasListening) {
         console.log('🔇 Pausing listening during voice response');
         SpeechRecognition.stopListening();
       }
-
-      speech.text = text;
-      speech.rate = 1;
-      speech.pitch = 1;
-      speech.volume = 1;
-
-      // Resume listening after speech ends
+      // ...
       speech.onend = () => {
-        if (wasListening) {
+        if (wasListening && !stopListeningRef.current) {
           console.log('🔊 Resuming listening after voice response');
           setTimeout(() => {
             SpeechRecognition.startListening({ continuous: true });
-          }, 500); // Small delay to prevent picking up tail end of speech
+          });
         }
-      };
-
-      window.speechSynthesis.cancel(); // Cancel any ongoing speech
-      window.speechSynthesis.speak(speech);
-      console.log('Voice Response:', text);
+      }
+      // ...
     }
   }
 
@@ -647,19 +583,25 @@ const VoiceProviderClient = ({ children }) => {
     // const last = event.results.length - 1;
     // const command = event.results[last][0].transcript;
     console.log('Voice Command: ', transcript);
-    if (transcript.includes('home')) {
+    const lower = transcript.toLowerCase();
+    if (
+      lower.includes('home') ||
+      lower.includes('go home') ||
+      lower.includes('मुख्य पृष्ठ') ||
+      lower.includes('main page')
+    ) {
       voicePageNavigator('home');
-    } else if (transcript.includes('sign up')) {
+    } else if (lower.includes('sign up')) {
       voicePageNavigator('signup');
-    } else if (transcript.includes('login')) {
+    } else if (lower.includes('login')) {
       voicePageNavigator('login');
-    } else if (transcript.includes('contact')) {
+    } else if (lower.includes('contact')) {
       voicePageNavigator('contact');
-    } else if (transcript.includes('reset password')) {
+    } else if (lower.includes('reset password')) {
       voicePageNavigator('reset password');
-    } else if (transcript.includes('hello')) {
+    } else if (lower.includes('hello')) {
       voiceResponse('Hello! How can I help you?');
-    } else if (transcript.includes('goodbye')) {
+    } else if (lower.includes('goodbye')) {
       voiceResponse('Goodbye! Have a nice day!');
     } else {
       voiceResponse('Sorry, I did not understand that command. Please try again.');

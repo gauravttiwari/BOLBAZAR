@@ -1,133 +1,59 @@
 "use client";
 
-import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
-import { useParams } from "next/navigation";
+import { IconCircleCheck } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation } from "next/navigation";
+import Confetti from "react-confetti";
 import useCartContext from "@/context/CartContext";
+import { useRouter } from "next/navigation";
+
 
 const ThankYou = () => {
-  const hasRun = useRef();
-
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // Load user from sessionStorage only on client side
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userData = sessionStorage.getItem("user");
-      if (userData) {
-        try {
-          setCurrentUser(JSON.parse(userData));
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-        }
-      }
-    }
-  }, []);
-
-  const { tutorid } = useParams();
-  //   const location = useLocation();
-  let params = new URLSearchParams(location.search);
-
-  const { cartItems, clearCart } = useCartContext();
-
-  const savePayment = async () => {
-    const paymentDetails = await retrievePaymentIntent();
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/order/add`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: currentUser._id,
-          items: cartItems,
-          paymentDetails: paymentDetails,
-          intentId: params.get("payment_intent")
-        }),
-      }
-    );
-    console.log(response.status); 
-    if (response.status === 200) {
-      clearCart();
-    }
-  };
-
-  const retrievePaymentIntent = async () => {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/retrieve-payment-intent`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          paymentIntentId: params.get("payment_intent"),
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    console.log(response.status);
-    const data = await response.json();
-    // console.log(data);
-    return data;
-  };
+  const [orderId, setOrderId] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
-    if (!hasRun.current) {
-      hasRun.current = true;
-      if (params.get("redirect_status") === "succeeded") {
-        savePayment();
-
-      }
-    }
+    // Dummy orderId and delivery date for demo; replace with real data if available
+    const id = Math.floor(Math.random() * 1000000000000).toString();
+    setOrderId(id);
+    // Delivery date: 5 days from now
+    const date = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+    setDeliveryDate(date.toLocaleDateString("en-IN", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }));
   }, []);
 
   return (
-    <>
-      <div className="flex items-center justify-center h-screen">
-        <div>
-          <div className="flex flex-col items-center space-y-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-green-600 w-28 h-28"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <h1 className="text-4xl font-bold">Thank You !</h1>
-            <p>
-              Thank you for your interest! Check your email for a link to the
-              guide.
-            </p>
-            <a className="inline-flex items-center px-4 py-2 text-white bg-indigo-600 border border-indigo-600 rounded rounded-full hover:bg-indigo-700 focus:outline-none focus:ring">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-3 h-3 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M7 16l-4-4m0 0l4-4m-4 4h18"
-                />
-              </svg>
-              <button className="text-sm font-medium">Home</button>
-            </a>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={250} recycle={false} />
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full border-t-8 border-blue-600">
+        <div className="flex items-center mb-4">
+          <IconCircleCheck className="text-green-600" size={48} />
+          <h2 className="ml-3 text-2xl font-bold text-blue-700">Order confirmed</h2>
+        </div>
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Order placed</span>
+            <span className="text-xs text-gray-400">Delivery</span>
+          </div>
+          <div className="w-full h-2 bg-gray-200 rounded-full my-2">
+            <div className="h-2 bg-blue-500 rounded-full w-1/4"></div>
           </div>
         </div>
+        <div className="mb-6">
+          <p className="text-lg font-semibold mb-1">Hi Customer,</p>
+          <p className="text-base font-medium text-gray-800 mb-2">Order successfully placed.</p>
+          <p className="text-sm text-gray-600 mb-1">Your order will be delivered by <span className="font-semibold text-green-700">{deliveryDate}</span></p>
+          <p className="text-sm text-gray-600 mb-1">Order No: <span className="font-mono text-blue-700">OD{orderId}</span></p>
+          <p className="text-xs text-gray-400">Thank you for shopping with BolBazar!</p>
+        </div>
+        <button
+          className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+          onClick={() => router.push(`/user/ordertracking?orderId=OD${orderId}`)}
+        >
+          Manage your order
+        </button>
       </div>
-    </>
+    </div>
   );
 };
+
 export default ThankYou;

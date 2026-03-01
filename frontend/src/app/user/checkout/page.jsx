@@ -18,10 +18,132 @@ const appearance = {
 };
 
 const CheckOut = () => {
-  const { voiceResponse } = useVoiceContext();
+  const { finalTranscript, resetTranscript, voiceResponse } = useVoiceContext();
   const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
   const { cartItems, setCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
+  // Voice command for placing order (English + Hindi)
+  // Voice command for placing order (English + Hindi)
+  React.useEffect(() => {
+    if (currentStep === 4 && finalTranscript) {
+      const lower = finalTranscript.toLowerCase();
+      if (
+        lower.includes('place order') ||
+        lower.includes('order now') ||
+        lower.includes('confirm order') ||
+        lower.includes('complete order') ||
+        lower.includes('ऑर्डर करो') ||
+        lower.includes('ऑर्डर कर दो') ||
+        lower.includes('ऑर्डर प्लेस करो') ||
+        lower.includes('ऑर्डर')
+      ) {
+        voiceResponse('Placing your order');
+        placeOrder();
+        resetTranscript();
+      }
+    }
+  }, [finalTranscript, currentStep, resetTranscript, voiceResponse]);
+    // Voice input for address form fields (Hindi + English)
+    React.useEffect(() => {
+      if (currentStep === 1 && showAddressForm && finalTranscript) {
+        const lower = finalTranscript.toLowerCase();
+        // Name
+        if (lower.startsWith('name:') || lower.startsWith('नाम:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, name: value }));
+          voiceResponse('Name set');
+          resetTranscript();
+        }
+        // Mobile
+        if (lower.startsWith('mobile:') || lower.startsWith('मोबाइल:')) {
+          const value = lower.split(':')[1]?.replace(/\D/g, '').trim();
+          if (value) setNewAddress(prev => ({ ...prev, mobile: value }));
+          voiceResponse('Mobile set');
+          resetTranscript();
+        }
+        // Pincode
+        if (lower.startsWith('pincode:') || lower.startsWith('पिनकोड:')) {
+          const value = lower.split(':')[1]?.replace(/\D/g, '').trim();
+          if (value) setNewAddress(prev => ({ ...prev, pincode: value }));
+          voiceResponse('Pincode set');
+          resetTranscript();
+        }
+        // State
+        if (lower.startsWith('state:') || lower.startsWith('राज्य:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, state: value }));
+          voiceResponse('State set');
+          resetTranscript();
+        }
+        // City
+        if (lower.startsWith('city:') || lower.startsWith('शहर:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, city: value }));
+          voiceResponse('City set');
+          resetTranscript();
+        }
+        // Address
+        if (lower.startsWith('address:') || lower.startsWith('पता:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, address: value }));
+          voiceResponse('Address set');
+          resetTranscript();
+        }
+        // Locality
+        if (lower.startsWith('locality:') || lower.startsWith('इलाका:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, locality: value }));
+          voiceResponse('Locality set');
+          resetTranscript();
+        }
+        // Landmark
+        if (lower.startsWith('landmark:') || lower.startsWith('सीमाचिह्न:')) {
+          const value = lower.split(':')[1]?.trim();
+          if (value) setNewAddress(prev => ({ ...prev, landmark: value }));
+          voiceResponse('Landmark set');
+          resetTranscript();
+        }
+        // Address Type
+        if (lower.includes('address type home') || lower.includes('पता प्रकार घर')) {
+          setNewAddress(prev => ({ ...prev, addressType: 'home' }));
+          voiceResponse('Address type set to home');
+          resetTranscript();
+        }
+        if (lower.includes('address type work') || lower.includes('पता प्रकार कार्य')) {
+          setNewAddress(prev => ({ ...prev, addressType: 'work' }));
+          voiceResponse('Address type set to work');
+          resetTranscript();
+        }
+        if (lower.includes('address type other') || lower.includes('पता प्रकार अन्य')) {
+          setNewAddress(prev => ({ ...prev, addressType: 'other' }));
+          voiceResponse('Address type set to other');
+          resetTranscript();
+        }
+      }
+    }, [finalTranscript, currentStep, showAddressForm, setNewAddress, voiceResponse, resetTranscript]);
+  // Voice command for selecting Cash on Delivery (COD)
+  React.useEffect(() => {
+    if (currentStep === 3 && finalTranscript) {
+      const lower = finalTranscript.toLowerCase();
+      // English and Hindi commands for COD
+      if (
+        lower.includes("cash on delivery") ||
+        lower.includes("cod") ||
+        lower.includes("nakad") ||
+        lower.includes("nakad par") ||
+        lower.includes("nakad par dijiye") ||
+        lower.includes("nakad chuno") ||
+        lower.includes("cash par dijiye") ||
+        lower.includes("cash select") ||
+        lower.includes("cod select") ||
+        lower.includes("cod chuno")
+      ) {
+        setPaymentMethod('cod');
+        voiceResponse('Cash on Delivery selected');
+        resetTranscript();
+      }
+    }
+  }, [finalTranscript, currentStep, setPaymentMethod, resetTranscript, voiceResponse]);
 
   // Voice command: place order/pay now
   useEffect(() => {
@@ -166,6 +288,7 @@ const CheckOut = () => {
       }
     } catch (error) {
       console.error("Error loading addresses:", error);
+      voiceResponse('Failed to load addresses');
     }
   };
 
@@ -183,6 +306,7 @@ const CheckOut = () => {
       }
     } catch (error) {
       console.error("Error verifying pincode:", error);
+      voiceResponse('Failed to verify pincode');
     }
     return null;
   };
@@ -226,9 +350,11 @@ const CheckOut = () => {
           landmark: '',
           addressType: 'home'
         });
+        voiceResponse('Address added successfully');
       }
     } catch (error) {
       console.error("Error adding address:", error);
+      voiceResponse('Failed to add address');
       alert("Failed to add address. Please try again.");
     }
   };
@@ -248,9 +374,11 @@ const CheckOut = () => {
         if (selectedAddress?._id === addressId) {
           setSelectedAddress(data.addresses[0] || null);
         }
+        voiceResponse('Address deleted');
       }
     } catch (error) {
       console.error("Error deleting address:", error);
+      voiceResponse('Failed to delete address');
     }
   };
 
@@ -321,6 +449,7 @@ const CheckOut = () => {
   // Place order
   const placeOrder = async () => {
     if (!currentUser || !selectedAddress) {
+      voiceResponse('Please complete all required steps');
       alert('Please complete all required steps');
       return;
     }
@@ -329,6 +458,7 @@ const CheckOut = () => {
     console.log('📦 Items:', cartItems);
 
     if (!cartItems || cartItems.length === 0) {
+      voiceResponse('Your cart is empty. Please add items before placing order.');
       alert('Your cart is empty. Please add items before placing order.');
       router.push('/');
       return;
@@ -383,7 +513,7 @@ const CheckOut = () => {
       if (response.ok) {
         const order = await response.json();
         console.log('Order placed successfully:', order._id);
-        
+        voiceResponse('Order placed successfully');
         // Notify seller
         try {
           await fetch(`${API_URL}/order/notify-seller/${order._id}`, {
@@ -394,14 +524,16 @@ const CheckOut = () => {
         }
 
         clearCart();
-        router.push(`/user/ordertracking?orderId=${order._id}`);
+        router.push(`/thankyou`);
       } else {
         const errorText = await response.text();
         console.error('Order placement failed:', errorText);
+        voiceResponse('Failed to place order');
         throw new Error(`Failed to place order: ${errorText}`);
       }
     } catch (error) {
       console.error("Error placing order:", error);
+      voiceResponse('Failed to place order');
       alert("Failed to place order. Please try again.");
     } finally {
       setProcessingPayment(false);
