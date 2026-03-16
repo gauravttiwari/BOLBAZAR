@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { CartProvider } from "@/context/CartContext";
 import { AppProvider } from "@/context/AppContext";
+import { VoiceProvider } from "@/context/VoiceContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,9 @@ export default function RootLayout({ children }) {
         <Toaster position="top-right" />
         <AppProvider>
           <CartProvider>
-            {children}
+            <VoiceProvider>
+              {children}
+            </VoiceProvider>
           </CartProvider>
         </AppProvider>
       </body>

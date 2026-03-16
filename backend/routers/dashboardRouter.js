@@ -15,11 +15,11 @@ router.get('/admin/charts', async (req, res) => {
         // Get last 30 days data for users
         const usersByDay = await User.aggregate([
             {
-                $match: { createdAt: { $gte: last30Days } }
+                $dateToStringmatch: { createdAt: { $gte: last30Days } }
             },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    _id: { $: { format: "%Y-%m-%d", date: "$createdAt" } },
                     count: { $sum: 1 }
                 }
             },

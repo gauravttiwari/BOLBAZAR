@@ -21,6 +21,9 @@ const CheckOut = () => {
   const { finalTranscript, resetTranscript, voiceResponse } = useVoiceContext();
   const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const { cartItems, setCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
   // Voice command for placing order (English + Hindi)
   // Voice command for placing order (English + Hindi)
@@ -208,9 +211,6 @@ const CheckOut = () => {
 
   
   // Address state
-  const [addresses, setAddresses] = useState([]);
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: '',
     mobile: '',
