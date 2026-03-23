@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import useSellerContext from "@/context/SellerContext";
+import useVoiceContext from "@/context/VoiceContext";
 import SellerSidebar from "@/components/SellerSidebar";
 import {
   LineChart,
@@ -72,6 +73,7 @@ const StatusBadge = ({ status }) => {
 const SellerDashboard = () => {
   console.log("📊 Seller Dashboard component loaded");
   const { currentSeller, sellerReady } = useSellerContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   console.log("Current seller:", currentSeller);
   console.log("Seller ready:", sellerReady);
   const [stats, setStats] = useState(null);
@@ -244,6 +246,41 @@ const SellerDashboard = () => {
       </svg>
     ),
   };
+
+  // Voice commands for seller dashboard
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('refresh') || lower.includes('reload')) {
+      voiceResponse('Refreshing dashboard');
+      fetchDashboardData();
+      resetTranscript();
+      return;
+    }
+
+    if (lower.includes('add product') || lower.includes('new product')) {
+      voiceResponse('Opening add product page');
+      window.location.href = '/seller/addProduct';
+      resetTranscript();
+      return;
+    }
+
+    if (lower.includes('manage products') || lower.includes('my products')) {
+      voiceResponse('Opening manage products');
+      window.location.href = '/seller/manageProduct';
+      resetTranscript();
+      return;
+    }
+
+    if (lower.includes('change chart') || lower.includes('switch view')) {
+      const newView = lower.includes('orders') ? 'orders' : lower.includes('combined') ? 'combined' : 'sales';
+      setChartView(newView);
+      voiceResponse('Switched to ' + newView + ' view');
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   // Show loading while checking for seller session
   if (!sellerReady) {

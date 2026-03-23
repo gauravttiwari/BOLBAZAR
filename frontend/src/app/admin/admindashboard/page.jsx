@@ -1,10 +1,12 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import useVoiceContext from "@/context/VoiceContext";
 import { UserGrowthChart, RevenueChart, OrdersChart, OrderStatusChart, SellersChart, ProductsChart } from "@/components/AdminCharts";
 
 
 const AdminDashboard = () => {
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [mounted, setMounted] = useState(false);
   const [adminData, setAdminData] = useState(null);
   const [stats, setStats] = useState({

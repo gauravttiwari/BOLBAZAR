@@ -29,6 +29,84 @@ const ProductDetail = () => {
   const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const { loggedIn, currentUser } = useAppContext();
 
+  // Voice commands for search, add to cart, and navigation
+  useEffect(() => {
+    if (!finalTranscript) return;
+    
+    const lower = finalTranscript.toLowerCase();
+    
+    // Voice search (English + Hindi)
+    if (
+      lower.startsWith('search:') ||
+      lower.startsWith('search for') ||
+      lower.startsWith('find:') ||
+      lower.startsWith('find ') ||
+      lower.startsWith('खोजो:') ||
+      lower.startsWith('खोजो ') ||
+      lower.startsWith('सर्च:') ||
+      lower.startsWith('सर्च ')
+    ) {
+      let q = '';
+      if (lower.startsWith('search:')) q = lower.split('search:')[1]?.trim();
+      else if (lower.startsWith('search for')) q = lower.split('search for')[1]?.trim();
+      else if (lower.startsWith('find:')) q = lower.split('find:')[1]?.trim();
+      else if (lower.startsWith('find ')) q = lower.split('find ')[1]?.trim();
+      else if (lower.startsWith('खोजो:')) q = lower.split('खोजो:')[1]?.trim();
+      else if (lower.startsWith('खोजो ')) q = lower.split('खोजो ')[1]?.trim();
+      else if (lower.startsWith('सर्च:')) q = lower.split('सर्च:')[1]?.trim();
+      else if (lower.startsWith('सर्च ')) q = lower.split('सर्च ')[1]?.trim();
+      
+      if (q) {
+        voiceResponse(`Searching for ${q}`);
+        router.push(`/productView?search=${encodeURIComponent(q)}`);
+        resetTranscript();
+      }
+    }
+    // Voice add to cart (English + Hindi)
+    else if (
+      (lower.includes('add') && lower.includes('cart')) ||
+      (lower.includes('add') && lower.includes('bag')) ||
+      lower.includes('कार्ट में जोड़ें') ||
+      lower.includes('बैग में जोड़ें')
+    ) {
+      if (productDetails) {
+        addItemToCart({ ...productDetails, quantity });
+        voiceResponse(`Added ${productDetails.pname} to cart`);
+      }
+      resetTranscript();
+    }
+    // Voice buy now (English + Hindi)
+    else if (
+      (lower.includes('buy') && lower.includes('now')) ||
+      lower.includes('now buy') ||
+      lower.includes('खरीदें') ||
+      lower.includes('अभी खरीदें')
+    ) {
+      if (productDetails) {
+        if (!loggedIn) {
+          voiceResponse('Please login to buy');
+          router.push('/login');
+        } else {
+          addItemToCart({ ...productDetails, quantity });
+          voiceResponse(`Proceeding to checkout`);
+          router.push('/user/checkout');
+        }
+      }
+      resetTranscript();
+    }
+    // Voice add to wishlist (English + Hindi)
+    else if (
+      lower.includes('wishlist') ||
+      lower.includes('wish') ||
+      lower.includes('favorite') ||
+      lower.includes('पसंदीदा') ||
+      lower.includes('विशलिस्ट')
+    ) {
+      handleWishlist();
+      resetTranscript();
+    }
+  }, [finalTranscript, productDetails]);
+
   // Voice commands: listen for global event
   useEffect(() => {
     const listener = () => {

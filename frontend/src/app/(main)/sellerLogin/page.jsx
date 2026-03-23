@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import useSellerContext from "@/context/SellerContext";
+import useVoiceContext from "@/context/VoiceContext";
 import { getPrivateKey, signChallenge } from "@/utils/crypto";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -10,6 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const SellerLogin = () => {
   const router = useRouter();
   const { setCurrentSeller, setSellerLoggedIn } = useSellerContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -123,6 +125,41 @@ const SellerLogin = () => {
       setLoading(false);
     }
   };
+
+  // Voice commands for seller login
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('email:')) {
+      const emailVal = finalTranscript.replace(/email:/i, '').trim();
+      if (emailVal) {
+        setEmail(emailVal);
+        voiceResponse('Email set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('password:')) {
+      const passVal = finalTranscript.replace(/password:/i, '').trim();
+      if (passVal && passVal.length >= 6) {
+        setPassword(passVal);
+        voiceResponse('Password set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('login') || lower.includes('seller login')) {
+      voiceResponse('Logging you in as seller');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-50">

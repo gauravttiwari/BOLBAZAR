@@ -1,9 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import useVoiceContext from "@/context/VoiceContext";
 
 const ManageUser = () => {
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [userList, setUserList] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const fetchUserData = () => {
     fetch("http://localhost:5000/user/getall")
       .then((response) => {
@@ -37,6 +40,29 @@ const ManageUser = () => {
         toast.error("Some error occured");
       });
   };
+
+  // Voice commands for manage user
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('search:') || lower.includes('find:')) {
+      const searchVal = finalTranscript.replace(/search:/i, '').replace(/find:/i, '').trim();
+      if (searchVal) {
+        setSearchTerm(searchVal);
+        voiceResponse('Searching for ' + searchVal);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('refresh') || lower.includes('reload')) {
+      voiceResponse('Refreshing user list');
+      fetchUserData();
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   return <>
     <div className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md bg-clip-border rounded-xl">

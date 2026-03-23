@@ -1,19 +1,67 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { passwordlessLogin } from "@/utils/passwordlessAuth";
 import useAppContext from "@/context/AppContext";
+import useVoiceContext from "@/context/VoiceContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const Login = () => {
   const router = useRouter();
   const { setLoggedIn, setCurrentUser } = useAppContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password login
+
+  // Voice commands for login
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    // Email voice command
+    if (lower.includes('email:') || lower.includes('ईमेल:')) {
+      const emailValue = finalTranscript.replace(/email:/i, '').replace(/ईमेल:/i, '').trim();
+      if (emailValue) {
+        setEmail(emailValue);
+        voiceResponse('Email set to ' + emailValue);
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Password voice command
+    if (lower.includes('password:') || lower.includes('पासवर्ड:')) {
+      const passValue = finalTranscript.replace(/password:/i, '').replace(/पासवर्ड:/i, '').trim();
+      if (passValue && passValue.length >= 6) {
+        setPassword(passValue);
+        voiceResponse('Password set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Login command
+    if (lower.includes('login') || lower.includes('लॉगिन करो') || lower.includes('साइन इन')) {
+      voiceResponse('Logging you in');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+
+    // Toggle login method
+    if (lower.includes('passwordless') || lower.includes('बिना पासवर्ड')) {
+      setUsePassword(false);
+      voiceResponse('Switched to passwordless login');
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   // Traditional password login
   const handlePasswordLogin = async () => {

@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import useVoiceContext from "@/context/VoiceContext";
 import { generateKeyPair, exportPublicKey, storePrivateKey, getDeviceInfo } from "@/utils/crypto";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const SellerSignup = () => {
   const router = useRouter();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -140,6 +142,81 @@ const SellerSignup = () => {
       setLoading(false);
     }
   };
+
+  // Voice commands for seller signup
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('first name:') || lower.includes('fname:')) {
+      const fname = finalTranscript.replace(/first name:/i, '').replace(/fname:/i, '').trim();
+      if (fname) {
+        setFormData(prev => ({ ...prev, fname }));
+        voiceResponse('First name set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('last name:') || lower.includes('lname:')) {
+      const lname = finalTranscript.replace(/last name:/i, '').replace(/lname:/i, '').trim();
+      if (lname) {
+        setFormData(prev => ({ ...prev, lname }));
+        voiceResponse('Last name set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('email:')) {
+      const email = finalTranscript.replace(/email:/i, '').trim();
+      if (email) {
+        setFormData(prev => ({ ...prev, email }));
+        voiceResponse('Email set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('phone:') || lower.includes('mobile:')) {
+      const phone = finalTranscript.replace(/phone:/i, '').replace(/mobile:/i, '').trim();
+      if (phone) {
+        setFormData(prev => ({ ...prev, phone }));
+        voiceResponse('Phone set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('business name:')) {
+      const businessName = finalTranscript.replace(/business name:/i, '').trim();
+      if (businessName) {
+        setFormData(prev => ({ ...prev, businessName }));
+        voiceResponse('Business name set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('password:')) {
+      const password = finalTranscript.replace(/password:/i, '').trim();
+      if (password && password.length >= 8) {
+        setFormData(prev => ({ ...prev, password, confirmPassword: password }));
+        voiceResponse('Password set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('signup') || lower.includes('register seller')) {
+      voiceResponse('Creating your seller account');
+      setTimeout(() => {
+        document.querySelector('button[type=\"submit\"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-50 py-8">

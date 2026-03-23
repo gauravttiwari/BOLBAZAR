@@ -1,10 +1,12 @@
 'use client'
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import React from "react";
+import React, { useEffect } from "react";
+import toast from "react-hot-toast";
+import useVoiceContext from "@/context/VoiceContext";
 
 const Contact = () => {
-
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
 
   const addContactSchema = Yup.object().shape({});
 
@@ -32,7 +34,63 @@ const Contact = () => {
       }
     },
     validationSchema: addContactSchema,
-  })
+  });
+
+  // Voice commands for contact form
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('first name:') || lower.includes('fname:')) {
+      const fname = finalTranscript.replace(/first name:/i, '').replace(/fname:/i, '').trim();
+      if (fname) {
+        addContactForm.setFieldValue('fname', fname);
+        voiceResponse('First name set to ' + fname);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('last name:') || lower.includes('lname:')) {
+      const lname = finalTranscript.replace(/last name:/i, '').replace(/lname:/i, '').trim();
+      if (lname) {
+        addContactForm.setFieldValue('lname', lname);
+        voiceResponse('Last name set to ' + lname);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('email:')) {
+      const email = finalTranscript.replace(/email:/i, '').trim();
+      if (email) {
+        addContactForm.setFieldValue('email', email);
+        voiceResponse('Email set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('message:')) {
+      const message = finalTranscript.replace(/message:/i, '').trim();
+      if (message) {
+        addContactForm.setFieldValue('message', message);
+        voiceResponse('Message recorded');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('send message') || lower.includes('submit')) {
+      voiceResponse('Sending your message');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript, addContactForm]);
+
   return (
     <>
       <div className="max-w-screen-lg mx-auto p-5">

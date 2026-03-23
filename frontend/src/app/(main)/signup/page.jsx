@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { passwordlessSignup } from "@/utils/passwordlessAuth";
+import useVoiceContext from "@/context/VoiceContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const Signup = () => {
   const router = useRouter();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -17,6 +19,66 @@ const Signup = () => {
   });
   const [loading, setLoading] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password signup
+
+  // Voice commands for signup
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    // First name command
+    if (lower.includes('first name:') || lower.includes('fname:') || lower.includes('उड:स् नाम:')) {
+      const fname = finalTranscript.replace(/first name:/i, '').replace(/fname:/i, '').replace(/उड:स् /i, '').trim();
+      if (fname) {
+        setFormData(prev => ({ ...prev, fname }));
+        voiceResponse('First name set to ' + fname);
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Last name command
+    if (lower.includes('last name:') || lower.includes('lname:') || lower.includes('अंतिम सवर्ण:')) {
+      const lname = finalTranscript.replace(/last name:/i, '').replace(/lname:/i, '').replace(/अंतिम सवर्ण:/i, '').trim();
+      if (lname) {
+        setFormData(prev => ({ ...prev, lname }));
+        voiceResponse('Last name set to ' + lname);
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Email command
+    if (lower.includes('email:') || lower.includes('ईमेल:')) {
+      const email = finalTranscript.replace(/email:/i, '').replace(/ईमेल:/i, '').trim();
+      if (email) {
+        setFormData(prev => ({ ...prev, email }));
+        voiceResponse('Email set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Password command
+    if (lower.includes('password:') || lower.includes('पासवर्ड:')) {
+      const password = finalTranscript.replace(/password:/i, '').replace(/पासवर्ड:/i, '').trim();
+      if (password && password.length >= 6) {
+        setFormData(prev => ({ ...prev, password, confirmPassword: password }));
+        voiceResponse('Password set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    // Signup command
+    if (lower.includes('signup') || lower.includes('register') || lower.includes('साइन अप')) {
+      voiceResponse('Creating your account');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   const handleChange = (e) => {
     setFormData({

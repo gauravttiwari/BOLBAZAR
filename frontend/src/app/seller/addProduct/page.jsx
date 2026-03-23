@@ -6,6 +6,7 @@ import * as Yup from "yup";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import useSellerContext from "@/context/SellerContext";
+import useVoiceContext from "@/context/VoiceContext";
 import SellerSidebar from "@/components/SellerSidebar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -21,6 +22,7 @@ const addProductSchema = Yup.object().shape({
 const AddProduct = () => {
   const router = useRouter();
   const { currentSeller, sellerReady } = useSellerContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [uploading, setUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
@@ -142,6 +144,51 @@ const AddProduct = () => {
       setFeatures(updatedFeatures);
     }
   };
+
+  // Voice commands for add product
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('product name:') || lower.includes('pname:')) {
+      const pname = finalTranscript.replace(/product name:/i, '').replace(/pname:/i, '').trim();
+      if (pname) {
+        addProductForm.setFieldValue('pname', pname);
+        voiceResponse('Product name set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('price:') || lower.includes('pprice:')) {
+      const price = finalTranscript.replace(/price:/i, '').replace(/pprice:/i, '').trim();
+      if (price && !isNaN(price)) {
+        addProductForm.setFieldValue('pprice', parseFloat(price));
+        voiceResponse('Price set to ' + price);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('description:') || lower.includes('detail:')) {
+      const detail = finalTranscript.replace(/description:/i, '').replace(/detail:/i, '').trim();
+      if (detail) {
+        addProductForm.setFieldValue('pdetail', detail);
+        voiceResponse('Description set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('add product') || lower.includes('submit product')) {
+      voiceResponse('Adding your product');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript, addProductForm]);
 
   if (!sellerReady) {
     return (

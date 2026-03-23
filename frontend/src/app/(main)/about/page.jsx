@@ -4,8 +4,10 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import toast from "react-hot-toast";
 import React, { useEffect, useState } from "react";
+import useVoiceContext from "@/context/VoiceContext";
 
 const About = () => {
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const feedbackSchema = Yup.object().shape({});
   const [productList, setProductList] = useState([]);
 
@@ -54,6 +56,51 @@ const About = () => {
     },
     validationSchema: feedbackSchema,
   });
+
+  // Voice commands for feedback form
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('name:')) {
+      const name = finalTranscript.replace(/name:/i, '').trim();
+      if (name) {
+        feedbackForm.setFieldValue('name', name);
+        voiceResponse('Name set to ' + name);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('email:')) {
+      const email = finalTranscript.replace(/email:/i, '').trim();
+      if (email) {
+        feedbackForm.setFieldValue('email', email);
+        voiceResponse('Email set');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('feedback:')) {
+      const feedback = finalTranscript.replace(/feedback:/i, '').trim();
+      if (feedback) {
+        feedbackForm.setFieldValue('feedback', feedback);
+        voiceResponse('Feedback recorded');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('submit feedback') || lower.includes('send feedback')) {
+      voiceResponse('Submitting your feedback');
+      setTimeout(() => {
+        document.querySelector('button[type="submit"]')?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript, feedbackForm]);
  
   return (
   <div>

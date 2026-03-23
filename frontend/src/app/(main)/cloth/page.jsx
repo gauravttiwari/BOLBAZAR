@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { IoSearch } from "react-icons/io5";
 import {
   IconFilter,
@@ -9,15 +9,67 @@ import {
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
 import useCartContext from "@/context/CartContext";
+import useVoiceContext from "@/context/VoiceContext";
 import Link from "next/link";
 
 const Showpiece = () => {
+  const router = useRouter();
   const [productList, setProductList] = useState([]);
   const { isInCart, addItemToCart } = useCartContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
 
   const [product, setProduct] = useState([]);
 
   const { category } = useParams();
+
+  // Voice commands (English + Hindi)
+  useEffect(() => {
+    if (!finalTranscript) return;
+    
+    const lower = finalTranscript.toLowerCase();
+    
+    // Voice search (English + Hindi)
+    if (
+      lower.startsWith('search:') ||
+      lower.startsWith('search for') ||
+      lower.startsWith('find:') ||
+      lower.startsWith('find ') ||
+      lower.startsWith('खोजो:') ||
+      lower.startsWith('खोजो ') ||
+      lower.startsWith('सर्च:') ||
+      lower.startsWith('सर्च ')
+    ) {
+      let q = '';
+      if (lower.startsWith('search:')) q = lower.split('search:')[1]?.trim();
+      else if (lower.startsWith('search for')) q = lower.split('search for')[1]?.trim();
+      else if (lower.startsWith('find:')) q = lower.split('find:')[1]?.trim();
+      else if (lower.startsWith('find ')) q = lower.split('find ')[1]?.trim();
+      else if (lower.startsWith('खोजो:')) q = lower.split('खोजो:')[1]?.trim();
+      else if (lower.startsWith('खोजो ')) q = lower.split('खोजो ')[1]?.trim();
+      else if (lower.startsWith('सर्च:')) q = lower.split('सर्च:')[1]?.trim();
+      else if (lower.startsWith('सर्च ')) q = lower.split('सर्च ')[1]?.trim();
+      
+      if (q) {
+        voiceResponse(`Searching for ${q}`);
+        router.push(`/productView?search=${encodeURIComponent(q)}`);
+        resetTranscript();
+      }
+    }
+    // Voice add to cart (English + Hindi)
+    else if (
+      (lower.includes('add') && lower.includes('cart')) ||
+      (lower.includes('add') && lower.includes('bag')) ||
+      lower.includes('कार्ट में जोड़ें') ||
+      lower.includes('बैग में जोड़ें')
+    ) {
+      if (product.length > 0) {
+        const firstProduct = product[0];
+        addItemToCart(firstProduct);
+        voiceResponse(`Added ${firstProduct.pname} to cart`);
+      }
+      resetTranscript();
+    }
+  }, [finalTranscript]);
 
   const fetchShowpieceproduct = async () => {
     const res = await fetch(

@@ -1,19 +1,18 @@
 "use client";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
-
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "next/navigation";
 import toast from "react-hot-toast";
+import useVoiceContext from "@/context/VoiceContext";
 
 const ResetPassword = () => {
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const emailRef = useRef(null);
   const otpRef = useRef(null);
 
   const [verifiedUser, setVerifiedUser] = useState(null);
-
   const [showForm, setShowForm] = useState(false);
-
   const router = useRouter();
 
   const checkMailExists = async () => {
@@ -94,6 +93,65 @@ const ResetPassword = () => {
         });
     },
   });
+
+  // Voice commands for password reset
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('email:') && !showForm) {
+      const email = finalTranscript.replace(/email:/i, '').trim();
+      if (email && emailRef.current) {
+        emailRef.current.value = email;
+        voiceResponse('Email set to ' + email);
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('otp:') && !showForm) {
+      const otp = finalTranscript.replace(/otp:/i, '').trim();
+      if (otp && otpRef.current) {
+        otpRef.current.value = otp;
+        voiceResponse('OTP entered');
+        resetTranscript();
+        return;
+      }
+    }
+
+    if (lower.includes('send otp') || lower.includes('send one time password')) {
+      voiceResponse('Sending OTP to your email');
+      setTimeout(() => {
+        document.querySelector('button:contains("Send OTP")')?.click() || 
+        Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Send OTP'))?.click();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+
+    if (showForm) {
+      if (lower.includes('password:') || lower.includes('new password:')) {
+        const pwd = finalTranscript.replace(/new password:/i, '').replace(/password:/i, '').trim();
+        if (pwd && pwd.length >= 6) {
+          resetForm.setFieldValue('password', pwd);
+          resetForm.setFieldValue('cpassword', pwd);
+          voiceResponse('Password set');
+          resetTranscript();
+          return;
+        }
+      }
+
+      if (lower.includes('reset password') || lower.includes('confirm')) {
+        voiceResponse('Resetting your password');
+        setTimeout(() => {
+          document.querySelector('button[type="submit"]')?.click();
+        }, 500);
+        resetTranscript();
+        return;
+      }
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript, showForm, resetForm]);
+
   return (
     <>
       <section className="bg-[#F5F5F5] dark:bg-gray-900">

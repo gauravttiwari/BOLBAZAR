@@ -4,6 +4,7 @@ import { IconCircleCheck } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
 import Confetti from "react-confetti";
 import useCartContext from "@/context/CartContext";
+import useVoiceContext from "@/context/VoiceContext";
 import { useRouter } from "next/navigation";
 
 
@@ -11,6 +12,48 @@ const ThankYou = () => {
   const [orderId, setOrderId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const router = useRouter();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
+
+  // Voice command for managing/tracking order (English + Hindi)
+  useEffect(() => {
+    if (!finalTranscript) return;
+    
+    const lower = finalTranscript.toLowerCase();
+    
+    // Manage order / Track order voice commands (English + Hindi)
+    if (
+      lower.includes('manage order') ||
+      lower.includes('manage my order') ||
+      lower.includes('track order') ||
+      lower.includes('track my order') ||
+      lower.includes('order tracking') ||
+      lower.includes('check order') ||
+      lower.includes('check my order') ||
+      lower.includes('ऑर्डर') ||
+      lower.includes('ऑर्डर ट्रैक') ||
+      lower.includes('ऑर्डर प्रबंधित') ||
+      lower.includes('मेरा ऑर्डर') ||
+      lower.includes('ऑर्डर की जांच')
+    ) {
+      voiceResponse('Opening your order details');
+      router.push(`/user/ordertracking?orderId=OD${orderId}`);
+      resetTranscript();
+    }
+    // Continue shopping / Home voice commands (English + Hindi)
+    else if (
+      lower.includes('continue shopping') ||
+      lower.includes('shop more') ||
+      lower.includes('home') ||
+      lower.includes('homepage') ||
+      lower.includes('खरीदारी जारी रखें') ||
+      lower.includes('घर') ||
+      lower.includes('होमपेज')
+    ) {
+      voiceResponse('Taking you back to shop');
+      router.push('/');
+      resetTranscript();
+    }
+  }, [finalTranscript, orderId, voiceResponse, resetTranscript, router]);
 
   useEffect(() => {
     // Dummy orderId and delivery date for demo; replace with real data if available

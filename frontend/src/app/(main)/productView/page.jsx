@@ -52,36 +52,163 @@ const ProductView = () => {
   const { addItemToCart, isInCart } = useCartContext();
   const { finalTranscript, voiceResponse, resetTranscript, triggerModal } = useVoiceContext();
 
-  // Voice commands
+  // Voice commands for search, filter, sort, and shopping
   useEffect(() => {
     if (!finalTranscript) return;
     
-    const transcript = finalTranscript.toLowerCase();
+    const lower = finalTranscript.toLowerCase();
     
-    if (transcript.includes('show me some ') || transcript.includes('search')) {
-      const product = pluralize.singular(transcript.split(' ').pop());
-      searchProduct(product);
-      voiceResponse(`Here are some ${product}s for you`);
-      resetTranscript();
-    } else if (transcript.includes('filter by category')) {
-      const category = transcript.split(' ').pop();
-      filterByCategory(category);
-      voiceResponse(`Filtering by ${category}`);
-      resetTranscript();
-    } else if (transcript.includes('clear search') || transcript.includes('clear filter')) {
-      setProductList(masterList);
-      setCurrentCategory('');
-      setPriceFilter(null);
-      resetTranscript();
-    } else if (transcript.includes('add') && transcript.includes('cart')) {
-      let productName = transcript.replace('add', '').replace('to cart', '').trim();
-      const foundProduct = productList.find(p => 
-        p.pname?.toLowerCase().includes(productName.toLowerCase())
-      );
-      if (foundProduct) {
-        addItemToCart(foundProduct);
-        voiceResponse(`Added ${foundProduct.pname} to cart`);
+    // Voice search (English + Hindi) - matching navbar patterns
+    if (
+      lower.startsWith('search:') ||
+      lower.startsWith('search for') ||
+      lower.startsWith('find:') ||
+      lower.startsWith('find ') ||
+      lower.startsWith('खोजो:') ||
+      lower.startsWith('खोजो ') ||
+      lower.startsWith('सर्च:') ||
+      lower.startsWith('सर्च ')
+    ) {
+      let q = '';
+      if (lower.startsWith('search:')) q = lower.split('search:')[1]?.trim();
+      else if (lower.startsWith('search for')) q = lower.split('search for')[1]?.trim();
+      else if (lower.startsWith('find:')) q = lower.split('find:')[1]?.trim();
+      else if (lower.startsWith('find ')) q = lower.split('find ')[1]?.trim();
+      else if (lower.startsWith('खोजो:')) q = lower.split('खोजो:')[1]?.trim();
+      else if (lower.startsWith('खोजो ')) q = lower.split('खोजो ')[1]?.trim();
+      else if (lower.startsWith('सर्च:')) q = lower.split('सर्च:')[1]?.trim();
+      else if (lower.startsWith('सर्च ')) q = lower.split('सर्च ')[1]?.trim();
+      
+      if (q) {
+        setSearchTerm(q);
+        searchProduct(q);
+        voiceResponse(`Searching for ${q}`);
+        resetTranscript();
       }
+    }
+    // Voice filter by category (English + Hindi)
+    else if (
+      lower.includes('filter by') ||
+      lower.includes('category:') ||
+      lower.includes('श्रेणी:') ||
+      lower.includes('फिल्टर')
+    ) {
+      let category = '';
+      if (lower.includes('filter by')) {
+        category = lower.split('filter by')[1]?.trim()?.split(' ')[0];
+      } else if (lower.includes('category:')) {
+        category = lower.split('category:')[1]?.trim();
+      } else if (lower.includes('श्रेणी:')) {
+        category = lower.split('श्रेणी:')[1]?.trim();
+      }
+      
+      if (category) {
+        filterByCategory(category);
+        voiceResponse(`Filtering by ${category}`);
+        resetTranscript();
+      }
+    }
+    // Voice sort by price low to high (English + Hindi)
+    else if (
+      lower.includes('sort by price low') ||
+      lower.includes('price low to high') ||
+      lower.includes('कम कीमत') ||
+      lower.includes('सस्ता')
+    ) {
+      sortProducts('price-asc');
+      voiceResponse('Sorted by price low to high');
+      resetTranscript();
+    }
+    // Voice sort by price high to low (English + Hindi)
+    else if (
+      lower.includes('sort by price high') ||
+      lower.includes('price high to low') ||
+      lower.includes('महंगा') ||
+      lower.includes('अधिक कीमत')
+    ) {
+      sortProducts('price-desc');
+      voiceResponse('Sorted by price high to low');
+      resetTranscript();
+    }
+    // Voice sort by newest (English + Hindi)
+    else if (
+      lower.includes('sort newest') ||
+      lower.includes('newest first') ||
+      lower.includes('नया') ||
+      lower.includes('नई वस्तुओं')
+    ) {
+      sortProducts('newest');
+      voiceResponse('Showing newest products first');
+      resetTranscript();
+    }
+    // Voice sort by rating (English + Hindi)
+    else if (
+      lower.includes('sort by rating') ||
+      lower.includes('highest rating') ||
+      lower.includes('रेटिंग') ||
+      lower.includes('सर्वोत्तम रेटिंग')
+    ) {
+      sortProducts('rating');
+      voiceResponse('Sorted by highest rating');
+      resetTranscript();
+    }
+    // Voice clear filters (English + Hindi)
+    else if (
+      lower.includes('clear filters') ||
+      lower.includes('clear all') ||
+      lower.includes('reset') ||
+      lower.includes('फिल्टर साफ') ||
+      lower.includes('रीसेट')
+    ) {
+      clearAllFilters();
+      voiceResponse('Filters cleared');
+      resetTranscript();
+    }
+    // Voice add to cart (English + Hindi)
+    else if (
+      (lower.includes('add') && lower.includes('cart')) ||
+      (lower.includes('add') && lower.includes('bag')) ||
+      lower.includes('कार्ट में जोड़ें') ||
+      lower.includes('बैग में जोड़ें')
+    ) {
+      let productName = lower
+        .replace('add to cart', '')
+        .replace('add to bag', '')
+        .replace('कार्ट में जोड़ें', '')
+        .replace('बैग में जोड़ें', '')
+        .trim();
+      
+      if (productName) {
+        const foundProduct = productList.find(p => 
+          p.pname?.toLowerCase().includes(productName.toLowerCase())
+        );
+        if (foundProduct) {
+          addItemToCart(foundProduct);
+          voiceResponse(`Added ${foundProduct.pname} to cart`);
+        } else {
+          voiceResponse(`Product not found`);
+        }
+      }
+      resetTranscript();
+    }
+    // Voice toggle grid view (English + Hindi)
+    else if (
+      lower.includes('grid view') ||
+      lower.includes('show grid') ||
+      lower.includes('ग्रिड दृश्य')
+    ) {
+      setGridView(true);
+      voiceResponse('Switched to grid view');
+      resetTranscript();
+    }
+    // Voice toggle list view (English + Hindi)
+    else if (
+      lower.includes('list view') ||
+      lower.includes('show list') ||
+      lower.includes('सूची दृश्य')
+    ) {
+      setGridView(false);
+      voiceResponse('Switched to list view');
       resetTranscript();
     }
   }, [finalTranscript]);

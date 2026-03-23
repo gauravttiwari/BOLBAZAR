@@ -73,20 +73,94 @@ const CategoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Voice command handler
+  // Voice command handler (English + Hindi support)
   useEffect(() => {
-    const transcript = finalTranscript.toLowerCase();
+    if (!finalTranscript) return;
     
-    if (transcript.includes('search') || transcript.includes('show me')) {
-      const searchTerm = transcript.replace('search', '').replace('show me', '').trim();
-      if (searchTerm) {
-        voiceResponse(`Searching for ${searchTerm}`);
-        router.push(`/productView?search=${searchTerm}`);
+    const lower = finalTranscript.toLowerCase();
+    
+    // Voice search (English + Hindi) - matching navbar patterns
+    if (
+      lower.startsWith('search:') ||
+      lower.startsWith('search for') ||
+      lower.startsWith('find:') ||
+      lower.startsWith('find ') ||
+      lower.startsWith('खोजो:') ||
+      lower.startsWith('खोजो ') ||
+      lower.startsWith('सर्च:') ||
+      lower.startsWith('सर्च ')
+    ) {
+      let q = '';
+      if (lower.startsWith('search:')) q = lower.split('search:')[1]?.trim();
+      else if (lower.startsWith('search for')) q = lower.split('search for')[1]?.trim();
+      else if (lower.startsWith('find:')) q = lower.split('find:')[1]?.trim();
+      else if (lower.startsWith('find ')) q = lower.split('find ')[1]?.trim();
+      else if (lower.startsWith('खोजो:')) q = lower.split('खोजो:')[1]?.trim();
+      else if (lower.startsWith('खोजो ')) q = lower.split('खोजो ')[1]?.trim();
+      else if (lower.startsWith('सर्च:')) q = lower.split('सर्च:')[1]?.trim();
+      else if (lower.startsWith('सर्च ')) q = lower.split('सर्च ')[1]?.trim();
+      
+      if (q) {
+        voiceResponse(`Searching for ${q}`);
+        router.push(`/productView?search=${encodeURIComponent(q)}`);
         resetTranscript();
       }
-    } else if (transcript.includes('open cart') || transcript.includes('view cart')) {
+    }
+    // Voice browse category (English + Hindi)
+    else if (
+      lower.includes('browse') ||
+      lower.includes('category:') ||
+      lower.includes('show me') ||
+      lower.includes('श्रेणी:') ||
+      lower.includes('दिखाएं')
+    ) {
+      let category = '';
+      
+      // Match category names
+      if (lower.includes('electronics') || lower.includes('इलेक्ट्रॉनिक्स')) {
+        category = 'electronics';
+      } else if (lower.includes('fashion') || lower.includes('फैशन')) {
+        category = 'fashion';
+      } else if (lower.includes('home') || lower.includes('furniture') || lower.includes('घर')) {
+        category = 'home & furniture';
+      } else if (lower.includes('appliances') || lower.includes('उपकरण')) {
+        category = 'appliances';
+      } else if (lower.includes('beauty') || lower.includes('सौंदर्य')) {
+        category = 'beauty';
+      } else if (lower.includes('sports') || lower.includes('खेल')) {
+        category = 'sports';
+      } else if (lower.includes('grocery') || lower.includes('किराना')) {
+        category = 'grocery';
+      } else if (lower.includes('books') || lower.includes('toys') || lower.includes('किताबें')) {
+        category = 'books & toys';
+      }
+      
+      if (category) {
+        voiceResponse(`Browsing ${category}`);
+        router.push(`/productView?category=${encodeURIComponent(category)}`);
+        resetTranscript();
+      }
+    }
+    // Voice open cart (English + Hindi)
+    else if (
+      lower.includes('open cart') ||
+      lower.includes('view cart') ||
+      lower.includes('show cart') ||
+      lower.includes('कार्ट') ||
+      lower.includes('कार्ट खोलें')
+    ) {
       voiceResponse('Opening your cart');
       setCartOpen(true);
+      resetTranscript();
+    }
+    // Voice close/hide menu (English + Hindi)
+    else if (
+      lower.includes('close menu') ||
+      lower.includes('back') ||
+      lower.includes('मेनू बंद करें')
+    ) {
+      setSelectedCategory(null);
+      voiceResponse('Menu closed');
       resetTranscript();
     }
   }, [finalTranscript]);

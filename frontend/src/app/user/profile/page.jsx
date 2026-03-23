@@ -3,12 +3,14 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useAppContext from "@/context/AppContext";
+import useVoiceContext from "@/context/VoiceContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const UserProfile = () => {
   const router = useRouter();
   const { currentUser, setCurrentUser, setLoggedIn, loading: authLoading } = useAppContext();
+  const { finalTranscript, voiceResponse, resetTranscript } = useVoiceContext();
   const [profileData, setProfileData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,35 @@ const UserProfile = () => {
     setLoggedIn(false);
     router.push("/login");
   };
+
+  // Voice commands for profile page
+  useEffect(() => {
+    if (!finalTranscript) return;
+    const lower = finalTranscript.toLowerCase();
+
+    if (lower.includes('show orders') || lower.includes('my orders')) {
+      setActiveTab('orders');
+      voiceResponse('Showing your orders');
+      resetTranscript();
+      return;
+    }
+
+    if (lower.includes('show profile') || lower.includes('my profile') || lower.includes('profile info')) {
+      setActiveTab('profile');
+      voiceResponse('Showing your profile');
+      resetTranscript();
+      return;
+    }
+
+    if (lower.includes('logout') || lower.includes('sign out')) {
+      voiceResponse('Logging you out');
+      setTimeout(() => {
+        handleLogout();
+      }, 500);
+      resetTranscript();
+      return;
+    }
+  }, [finalTranscript, voiceResponse, resetTranscript]);
 
   // Show loading while checking authentication
   if (authLoading || !currentUser) {

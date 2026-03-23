@@ -25,6 +25,42 @@ const CheckOut = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const { cartItems, setCartItems, getCartTotal: contextGetTotal, clearCart } = useCartContext();
+  const { currentUser, loggedIn, loading: authLoading } = useAppContext();
+  
+  // State management - moved to top before any useEffect that uses them
+  const [loading, setLoading] = useState(true);
+  
+  // Address state
+  const [newAddress, setNewAddress] = useState({
+    name: '',
+    mobile: '',
+    pincode: '',
+    state: '',
+    city: '',
+    address: '',
+    landmark: '',
+    addressType: 'home'
+  });
+  const [pincodeVerification, setPincodeVerification] = useState(null);
+  
+  // Delivery state
+  const [deliveryOption, setDeliveryOption] = useState('normal');
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
+  const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState(5);
+  
+  // Payment state
+  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [clientSecret, setClientSecret] = useState("");
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Steps for checkout wizard
+  const steps = [
+    { num: 1, label: 'Address', icon: <IconMapPin size={24} /> },
+    { num: 2, label: 'Delivery', icon: <IconTruck size={24} /> },
+    { num: 3, label: 'Payment', icon: <IconCreditCard size={24} /> },
+    { num: 4, label: 'Confirm', icon: <IconCheck size={24} /> }
+  ];
+
   // Voice command for placing order (English + Hindi)
   // Voice command for placing order (English + Hindi)
   React.useEffect(() => {
@@ -148,6 +184,53 @@ const CheckOut = () => {
     }
   }, [finalTranscript, currentStep, setPaymentMethod, resetTranscript, voiceResponse]);
 
+  // Voice command for continuing/navigating through checkout steps (English + Hindi)
+  React.useEffect(() => {
+    if (finalTranscript) {
+      const lower = finalTranscript.toLowerCase();
+      // Continue/Next voice commands (English + Hindi)
+      if (
+        lower.includes('continue') ||
+        lower.includes('next') ||
+        lower.includes('next step') ||
+        lower.includes('आगे') ||
+        lower.includes('आगे बढ़ो') ||
+        lower.includes('अगला') ||
+        lower.includes('अगला स्टेप') ||
+        lower === 'continue' ||
+        lower === 'next'
+      ) {
+        if (currentStep < 4) {
+          voiceResponse(`Moving to next step`);
+          setCurrentStep(currentStep + 1);
+          resetTranscript();
+        } else if (currentStep === 4) {
+          voiceResponse('You are on the final step. Say place order to confirm');
+          resetTranscript();
+        }
+      }
+      // Back/Previous voice commands (English + Hindi)
+      else if (
+        lower.includes('back') ||
+        lower.includes('previous') ||
+        lower.includes('पिछले') ||
+        lower.includes('वापस') ||
+        lower.includes('पीछे') ||
+        lower === 'back' ||
+        lower === 'previous'
+      ) {
+        if (currentStep > 1) {
+          voiceResponse(`Going back`);
+          setCurrentStep(currentStep - 1);
+          resetTranscript();
+        } else if (currentStep === 1) {
+          voiceResponse('You are on the first step');
+          resetTranscript();
+        }
+      }
+    }
+  }, [finalTranscript, currentStep, voiceResponse, resetTranscript]);
+
   // Voice command: place order/pay now
   useEffect(() => {
     const listener = () => {
@@ -203,43 +286,6 @@ const CheckOut = () => {
       window.addEventListener('pageshow', syncCart);
       return () => window.removeEventListener('pageshow', syncCart);
     }, [setCartItems]);
-  const { currentUser, loggedIn, loading: authLoading } = useAppContext();
-  
-  // State management
-  // const [currentStep, setCurrentStep] = useState(1); // Duplicate removed
-  const [loading, setLoading] = useState(true);
-
-  
-  // Address state
-  const [newAddress, setNewAddress] = useState({
-    name: '',
-    mobile: '',
-    pincode: '',
-    state: '',
-    city: '',
-    address: '',
-    landmark: '',
-    addressType: 'home'
-  });
-  const [pincodeVerification, setPincodeVerification] = useState(null);
-  
-  // Delivery state
-  const [deliveryOption, setDeliveryOption] = useState('normal');
-  const [deliveryCharge, setDeliveryCharge] = useState(0);
-  const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState(5);
-  
-  // Payment state
-  const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [clientSecret, setClientSecret] = useState("");
-  const [processingPayment, setProcessingPayment] = useState(false);
-
-  // Steps for checkout wizard
-  const steps = [
-    { num: 1, label: 'Address', icon: <IconMapPin size={24} /> },
-    { num: 2, label: 'Delivery', icon: <IconTruck size={24} /> },
-    { num: 3, label: 'Payment', icon: <IconCreditCard size={24} /> },
-    { num: 4, label: 'Confirm', icon: <IconCheck size={24} /> }
-  ];
 
   // Helper function to get cart total
   const getCartTotal = () => {
