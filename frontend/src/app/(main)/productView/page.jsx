@@ -532,11 +532,14 @@ const ProductView = () => {
                     <Link key={product._id} href={`/productDetail/${product._id}`}>
                       <div className="bg-white rounded-sm shadow-card p-4 flex gap-4 hover:shadow-card-hover transition-shadow">
                         <img
-                          src={
-                            product.images && product.images.length > 0
-                              ? `http://localhost:5000/${product.images[0]}`
-                              : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
-                          }
+                          src={(() => {
+                            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                            const imagePath = product.images?.[0];
+                            if (!imagePath) return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            if (imagePath.startsWith('http')) return imagePath;
+                            if (!imagePath.includes('/') && !imagePath.includes('\\')) return `${apiBase}/uploads/${imagePath}`;
+                            return `${apiBase}/${imagePath}`;
+                          })()}
                           alt={product.pname}
                           className="w-32 h-32 object-contain flex-shrink-0"
                           onError={(e) => {

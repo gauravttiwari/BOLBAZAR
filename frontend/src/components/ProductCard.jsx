@@ -27,14 +27,35 @@ const ProductCard = ({ product, showAddToCart = true }) => {
     if (imageError) {
       return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
     }
-    if (product.images && product.images.length > 0) {
-      return `http://localhost:5000/${product.images[0]}`;
+    if (!product.images || product.images.length === 0) {
+      return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
     }
-    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    let imagePath = product.images[0];
+
+    // If already a full URL, use it directly
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+
+    // Handle static/uploads/ prefix from database
+    if (imagePath.startsWith('static/uploads/')) {
+      return `${apiBase}/${imagePath}`;
+    }
+
+    // If path is just filename (no directory), prepend uploads
+    if (!imagePath.includes('/') && !imagePath.includes('\\')) {
+      return `${apiBase}/uploads/${imagePath}`;
+    }
+
+    // Otherwise assume it's a relative path and prepend API base
+    return `${apiBase}/${imagePath}`;
   };
 
   const handleImageError = () => {
     console.warn('Image failed to load for product:', product.pname);
+    console.warn('Image path from DB:', product.images?.[0]);
     setImageError(true);
   };
 

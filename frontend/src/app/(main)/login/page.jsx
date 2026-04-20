@@ -199,10 +199,12 @@ const Login = () => {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   placeholder="your.email@example.com"
                   className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-gray-900 bg-white"
                 />
@@ -216,10 +218,12 @@ const Login = () => {
                   </label>
                   <input
                     id="password"
+                    name="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-gray-900 bg-white"
                   />

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 const CartContext = createContext();
 
@@ -37,60 +37,68 @@ export const CartProvider = ({ children }) => {
       localStorage.setItem("cartItems", JSON.stringify(cartItems));
     }
   }, [cartItems]);
-  const addItemToCart = (item) => {
+  
+  const addItemToCart = useCallback((item) => {
     console.log('➕ Adding item to cart:', item.pname || item.title);
-    const exist = cartItems.find((cartItem) => cartItem._id === item._id);
-    if (exist) {
-      setCartItems(
-        cartItems.map((cartItem) =>
+    setCartItems(prevItems => {
+      const exist = prevItems.find((cartItem) => cartItem._id === item._id);
+      if (exist) {
+        const updated = prevItems.map((cartItem) =>
           cartItem._id === item._id
             ? { ...exist, quantity: exist.quantity + 1 }
             : cartItem
-        )
-      );
-      console.log('✅ Updated quantity for:', item.pname);
-      return;
-    }
-    setCartItems([...cartItems, { ...item, quantity: 1 }]);
-    console.log('✅ Added new item to cart. Total items:', cartItems.length + 1);
-  };
-  const removeItemFromCart = (item) => {
-    const exist = cartItems.find((cartItem) => cartItem._id === item._id);
-    if (exist.quantity === 1) {
-      setCartItems(cartItems.filter((cartItem) => cartItem._id !== item._id));
-    } else {
-      setCartItems(
-        cartItems.map((cartItem) =>
+        );
+        console.log('✅ Updated quantity for:', item.pname);
+        return updated;
+      }
+      console.log('✅ Added new item to cart. Total items:', prevItems.length + 1);
+      return [...prevItems, { ...item, quantity: 1 }];
+    });
+  }, []);
+
+  const removeItemFromCart = useCallback((item) => {
+    setCartItems(prevItems => {
+      const exist = prevItems.find((cartItem) => cartItem._id === item._id);
+      if (!exist) return prevItems;
+      
+      if (exist.quantity === 1) {
+        return prevItems.filter((cartItem) => cartItem._id !== item._id);
+      } else {
+        return prevItems.map((cartItem) =>
           cartItem._id === item._id
             ? { ...exist, quantity: exist.quantity - 1 }
             : cartItem
-        )
-      );
-    }
-  };
+        );
+      }
+    });
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCartItems([]);
     if (typeof window !== 'undefined') {
       localStorage.removeItem("cartItems");
     }
-  };
+  }, []);
 
-  const isInCart = (itemId) => {
+  const isInCart = useCallback((itemId) => {
+    // Reduced logging - only on debug mode
     const found = cartItems.find((cartItem) => cartItem._id === itemId);
-    console.log('🔍 Checking isInCart for:', itemId, '→', found ? 'YES' : 'NO');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Checking isInCart for:', itemId, '→', found ? 'YES' : 'NO');
+    }
     return found ? true : false;
-  };
+  }, [cartItems]);
 
-  const getCartTotal = () => {
+  const getCartTotal = useCallback(() => {
     return cartItems.reduce(
       (acc, item) => acc + item.pprice * item.quantity,
       0
     );
-  };
-  const getCartItemsCount = () => {
+  }, [cartItems]);
+
+  const getCartItemsCount = useCallback(() => {
     return cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  };
+  }, [cartItems]);
 
   
 

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { FaMicrophone } from "react-icons/fa6";
 import { AnimatePresence, motion } from 'framer-motion';
 
-const InfoModal = ({ icon, title, description, showModal, setShowModal, centered = false, duration = 2000 }) => {
+const InfoModal = ({ icon, title, description, showModal, setShowModal, centered = false, duration = 1200 }) => {
 
   useEffect(() => {
     if (showModal) {
@@ -27,7 +27,7 @@ const InfoModal = ({ icon, title, description, showModal, setShowModal, centered
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.15 }}
         >
           <p>{icon}</p>
           <h2 className='text-2xl font-bold'>{title}</h2>
@@ -41,22 +41,46 @@ const InfoModal = ({ icon, title, description, showModal, setShowModal, centered
 const InstructionModal = ({ setShowModal }) => {
   return <AnimatePresence>
     <motion.div
-      className={`top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 fixed z-30 bg-white text-slate-800 p-10 rounded-xl`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      className={`top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 fixed z-30 bg-gradient-to-b from-blue-50 to-white text-slate-800 p-8 rounded-2xl shadow-2xl max-w-2xl`}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.6 }}
     >
       {/* close button */}
-      <button onClick={() => setShowModal(false)} className='absolute top-10 right-10 text-xl'>
-        <IconX size={20} />
+      <button onClick={() => setShowModal(false)} className='absolute top-5 right-5 text-xl hover:bg-red-100 p-2 rounded'>
+        <IconX size={24} />
       </button>
-      <h3 className='text-center text-3xl font-bold mb-4'>Basic Instructions</h3>
-      <p className='text-lg mb-2'>{`1. Say "Open <page name> page" to open navigate to any page`}</p>
-      <p className='text-lg mb-2'>{`2. Say "I want to create an account" to navigate to the signup page`}</p>
-      <p className='text-lg mb-2'>{`3. Say "I want to login" to navigate to the login page`}</p>
-      <p className='text-lg mb-2'>{`4. Say "Move down" to scroll down and vice-versa`}</p>
-      <p className='text-lg mb-2'>{`5. Say "Move to bottom" to scroll to bottom of page and vice-versa`}</p>
+      
+      <h3 className='text-center text-4xl font-bold mb-6 text-blue-600'>🎤 वॉइस कमांड्स</h3>
+      
+      <div className='space-y-4'>
+        <div className='bg-blue-100 p-4 rounded-lg'>
+          <h4 className='font-bold text-lg mb-2'>📍 नेविगेशन (पेज खोलना)</h4>
+          <p className='text-base mb-1'>• "होम खोलो" - होम पेज पर जाना</p>
+          <p className='text-base mb-1'>• "लॉगिन खोलो" - लॉगिन पेज पर जाना</p>
+          <p className='text-base mb-1'>• "साइन अप खोलो" - खाता बनाना</p>
+          <p className='text-base mb-1'>• "कार्ट खोलो" या "मेरी कार्ट" - शॉपिंग कार्ट देखना</p>
+          <p className='text-base'>• "प्रोडक्ट्स" - सभी प्रोडक्ट्स देखना</p>
+        </div>
+
+        <div className='bg-green-100 p-4 rounded-lg'>
+          <h4 className='font-bold text-lg mb-2'>⬆️ स्क्रॉलिंग</h4>
+          <p className='text-base mb-1'>• "ऊपर स्क्रॉल करो" - पेज को ऊपर ले जाना</p>
+          <p className='text-base mb-1'>• "नीचे स्क्रॉल करो" - पेज को नीचे ले जाना</p>
+          <p className='text-base mb-1'>• "सबसे नीचे जाओ" - पेज के आखिर में जाना</p>
+          <p className='text-base'>• "सबसे ऊपर जाओ" - पेज के शुरुआत में जाना</p>
+        </div>
+
+        <div className='bg-yellow-100 p-4 rounded-lg'>
+          <h4 className='font-bold text-lg mb-2'>💡 सामान्य कमांड्स</h4>
+          <p className='text-base mb-1'>• "नमस्ते" - सहायक को नमस्कार</p>
+          <p className='text-base mb-1'>• "मदद दो" - सहायता पाना</p>
+          <p className='text-base'>• "अलविदा" - सहायक को बंद करना</p>
+        </div>
+
+        <p className='text-sm text-gray-600 italic mt-4'>💬 Tip: धीरे-धीरे और स्पष्ट आवाज़ में बोलें</p>
+      </div>
     </motion.div>
   </AnimatePresence>
 }
@@ -157,28 +181,38 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
     icon: <FaMicrophone size={50} />,
     title: '',
     description: '',
-    centered: true
+    centered: true,
+    duration: 1200
   });
   const hasRun = useRef(false);
   const router = useRouter();
   const [voices, setVoices] = useState([]);
   const [speech, setSpeech] = useState(null);
+  const voicesCacheRef = useRef(null); // Cache voices for faster lookups
+  const lastProcessedCommandRef = useRef(null); // Track last processed command to prevent duplicates
+  const commandTimeoutRef = useRef(null); // Track timeout for duplicate prevention
 
   // Initialize speech synthesis on client side only
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const utterance = new SpeechSynthesisUtterance();
-      setSpeech(utterance);
-      loadVoices();
+      try {
+        const utterance = new SpeechSynthesisUtterance();
+        setSpeech(utterance);
+        loadVoices();
+        console.log('✅ Speech synthesis initialized successfully');
+      } catch (error) {
+        console.error('❌ Error initializing speech synthesis:', error);
+      }
     }
   }, []);
 
-  const triggerModal = (title, description, centered = true, icon = <FaMicrophone size={50} />) => {
+  const triggerModal = (title, description, centered = true, icon = <FaMicrophone size={50} />, duration = 1200) => {
     setModalOptions({
       icon,
       title,
       description,
-      centered
+      centered,
+      duration
     });
     setShowModal(true);
   }
@@ -341,6 +375,20 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       }
     },
     {
+      command: 'open cart',
+      callback: () => {
+        console.log('🎯 Command matched: Open cart');
+        voicePageNavigator('MyCart')
+      }
+    },
+    {
+      command: 'open card',
+      callback: () => {
+        console.log('🎯 Command matched: Open cart (card variant)');
+        voicePageNavigator('MyCart')
+      }
+    },
+    {
       command: 'show me products',
       callback: (pageName) => {
         router.push('/productView');
@@ -389,7 +437,7 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
         console.warn('⚠️ Your browser does not support speech recognition! Please use Chrome or Edge.');
         triggerModal('Browser Not Supported', 'Please use Chrome or Edge browser for voice features', true, <IconMicrophoneOff size={50} />);
       } else {
-        console.log('✅ Speech recognition is supported!');
+        console.log('✅ Speech recognition is supported in this browser!');
       }
     }
   }, [browserSupportsSpeechRecognition]);
@@ -405,8 +453,41 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
   }, [transcript, finalTranscript]);
 
   const voicePageNavigator = (pageName) => {
-    console.log('🔍 Looking for page:', pageName);
-    const page = pageDetails.find(page => pageName.toLowerCase().includes(page.pageName.toLowerCase()));
+    // Handle common speech recognition variations
+    let normalizedName = pageName.toLowerCase();
+    
+    // Map variations to correct page names
+    const variations = {
+      'card': 'cart',
+      'my cart': 'cart',
+      'shopping cart': 'cart',
+      'quit': 'checkout',
+      'check out': 'checkout',
+      'check-out': 'checkout',
+      'sign up': 'signup',
+      'register': 'signup',
+      'reset pass': 'resetPassword',
+      'password reset': 'resetPassword',
+      'products': 'productView',
+      'product': 'productView',
+      'seller dash': 'sellerdashboard',
+      'seller panel': 'sellerdashboard',
+      'manage': 'manageProduct',
+      'add item': 'addProduct',
+      'admin dash': 'admindashboard',
+      'admin panel': 'admindashboard',
+    };
+
+    // Apply variation mapping
+    for (const [variation, target] of Object.entries(variations)) {
+      if (normalizedName.includes(variation)) {
+        normalizedName = target;
+        break;
+      }
+    }
+
+    console.log('🔍 Looking for page:', normalizedName);
+    const page = pageDetails.find(page => normalizedName.includes(page.pageName.toLowerCase()));
     console.log('📄 Found page:', page);
 
     if (page) {
@@ -414,9 +495,8 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       const message = `Navigating to ${pageName} page`;
       voiceResponse(message);
       triggerModal('Navigating...', message);
-      setTimeout(() => {
-        router.push(page.pagePath);
-      }, 500);
+      // Faster navigation - immediate without delay
+      router.push(page.pagePath);
     } else {
       console.log('❌ Page not found!');
       voiceResponse('Sorry, I could not find that page');
@@ -444,32 +524,112 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
   useEffect(() => {
     if (!hasRun.current) {
       hasRun.current = true;
-      // SpeechRecognition.startListening({ continuous: true });
-      // voiceResponse('Welcome to BolBazar. What are you shopping today?');
-      // triggerModal('Voice Assistant', 'I am listening');
+      // Start listening when component mounts
+      setTimeout(() => {
+        console.log('🎤 Auto-starting voice recognition on mount');
+        SpeechRecognition.startListening({ continuous: true });
+        try {
+          voiceResponse('आपका स्वागत है BolBazar में', 'hi');
+          triggerModal('🎤 वॉइस असिस्टेंट', 'मैं सुन रहा हूँ। कोई कमांड बोलें या "?" दबाएं मदद के लिए', true, <FaMicrophone size={50} />, 3000);
+        } catch (error) {
+          console.error('Error starting voice response:', error);
+        }
+      }, 500);
     }
-  }, [])
+  }, [browserSupportsSpeechRecognition])
 
-  // open instruction modal after 3 seconds
+  // Keyboard shortcut for help
   useEffect(() => {
-    setTimeout(() => {
-      setShowInstruction(true);
-    }, 3000);
-  }, [])
+    const handleKeyPress = (e) => {
+      // Show help on "?" or "H" key
+      if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+        setShowInstruction(true);
+        voiceResponse('यहाँ वॉइस कमांड्स हैं', 'hi');
+      }
+      // Start listening on Space
+      if (e.code === 'Space' && e.ctrlKey) {
+        SpeechRecognition.startListening();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
+  // Function to clean noise words from transcript
+  const cleanTranscript = (text) => {
+    if (!text) return '';
+    
+    // List of noise words/phrases to remove
+    const noisePatterns = [
+      /sorry\s+i\s+did\s+not\s+understand/gi,
+      /i\s+did\s+not\s+understand/gi,
+      /sorry\s+i\s+don\'t\s+understand/gi,
+      /i\s+don\'t\s+understand/gi,
+      /sorry/gi,
+      /uh\s+huh/gi,
+      /hmm/gi,
+      /um/gi,
+      /uh/gi,
+      /like\s+/gi,
+      /you\s+know/gi,
+      /i\s+mean/gi,
+      /basically/gi,
+      /actually/gi,
+      /literally/gi,
+    ];
 
+    let cleaned = text.trim();
+    
+    // Remove each noise pattern
+    for (const pattern of noisePatterns) {
+      cleaned = cleaned.replace(pattern, ' ');
+    }
+
+    // Clean up multiple spaces and trim
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    return cleaned;
+  };
 
   useEffect(() => {
     if (!finalTranscript) return;
-    const lowerTranscript = finalTranscript.toLowerCase();
+    
+    // Clean the transcript first
+    const cleanedTranscript = cleanTranscript(finalTranscript);
+    if (!cleanedTranscript) {
+      resetTranscript();
+      return; // If nothing remains after cleaning, skip
+    }
+    
+    const lowerTranscript = cleanedTranscript.toLowerCase();
     console.log('🎯 Processing command:', lowerTranscript);
+
+    // Prevent duplicate command processing within 1.5 second
+    if (lastProcessedCommandRef.current === lowerTranscript) {
+      console.log('⏭️ Skipping duplicate command processing');
+      return;
+    }
+
+    // Mark this command as processed IMMEDIATELY
+    lastProcessedCommandRef.current = lowerTranscript;
+    resetTranscript(); // Reset immediately to prevent reprocessing
+    
+    // Clear any pending timeout
+    if (commandTimeoutRef.current) {
+      clearTimeout(commandTimeoutRef.current);
+    }
+    
+    // Reset the "last processed" command after 1.5 seconds to allow reprocessing if needed
+    commandTimeoutRef.current = setTimeout(() => {
+      lastProcessedCommandRef.current = null;
+    }, 1500);
 
     // --- Hindi Commands ---
     // नमस्ते / हेलो
     if (lowerTranscript.includes('नमस्ते') || lowerTranscript.includes('नमस्कार')) {
       voiceResponse('नमस्ते! मैं आपकी कैसे मदद कर सकता हूँ?', 'hi');
-      triggerModal('नमस्ते!', 'आपकी मदद के लिए तैयार हूँ');
-      resetTranscript();
+      triggerModal('नमस्ते!', 'आपकी मदद के लिए तैयार हूँ', true, <FaMicrophone size={50} />, 1000);
       return;
     }
 
@@ -478,7 +638,6 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       voiceResponse('शुक्रिया! आपका दिन शुभ हो!', 'hi');
       SpeechRecognition.stopListening();
       triggerModal('अलविदा!', 'आपका दिन शुभ हो!', false, <IconMicrophoneOff size={50} />);
-      resetTranscript();
       return;
     }
 
@@ -489,7 +648,6 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       setTimeout(() => {
         router.push('/login');
       }, 500);
-      resetTranscript();
       return;
     }
 
@@ -500,7 +658,6 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       setTimeout(() => {
         router.push('/signup');
       }, 500);
-      resetTranscript();
       return;
     }
 
@@ -511,7 +668,6 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       setTimeout(() => {
         router.push('/');
       }, 500);
-      resetTranscript();
       return;
     }
 
@@ -599,19 +755,34 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       return;
     }
 
-    // Feedback / Help (Hindi + English)
+    // Help / मदद (Hindi + English)
     if (
-      lowerTranscript.includes('feedback') || lowerTranscript.includes('suggestion') ||
-      lowerTranscript.includes('फीडबैक') || lowerTranscript.includes('सुझाव') ||
-      lowerTranscript.includes('help') || lowerTranscript.includes('मदद') || lowerTranscript.includes('सहायता')
+      lowerTranscript.includes('help') || lowerTranscript.includes('मदद') || 
+      lowerTranscript.includes('सहायता') || lowerTranscript.includes('help me') ||
+      lowerTranscript.includes('मदद दो') || lowerTranscript.includes('कमांड्स बताओ') ||
+      lowerTranscript.includes('क्या करूँ') || lowerTranscript.includes('क्या कहूँ')
     ) {
-      const isHindi = lowerTranscript.includes('फीडबैक') || lowerTranscript.includes('सुझाव') || lowerTranscript.includes('मदद') || lowerTranscript.includes('सहायता');
+      const isHindi = lowerTranscript.includes('मदद') || lowerTranscript.includes('सहायता') || 
+                      lowerTranscript.includes('मदद दो') || lowerTranscript.includes('क्या');
       voiceResponse(
-        isHindi ? 'कृपया अपनी प्रतिक्रिया साझा करें।' : 'Opening feedback and help. Please share your feedback or ask your question.',
+        isHindi ? 'वॉइस कमांड्स की सूची दिखा रहे हैं' : 'Here are the available voice commands for you.',
         isHindi ? 'hi' : 'en'
       );
-      triggerModal(isHindi ? 'प्रतिक्रिया / मदद' : 'Feedback / Help', isHindi ? 'अपनी प्रतिक्रिया साझा करें' : 'Please share your feedback or ask your question.');
-      resetTranscript();
+      setShowInstruction(true);
+      return;
+    }
+
+    // Feedback (Hindi + English)
+    if (
+      lowerTranscript.includes('feedback') || lowerTranscript.includes('suggestion') ||
+      lowerTranscript.includes('फीडबैक') || lowerTranscript.includes('सुझाव')
+    ) {
+      const isHindi = lowerTranscript.includes('फीडबैक') || lowerTranscript.includes('सुझाव');
+      voiceResponse(
+        isHindi ? 'कृपया अपनी प्रतिक्रिया साझा करें।' : 'Please share your feedback with us.',
+        isHindi ? 'hi' : 'en'
+      );
+      triggerModal(isHindi ? 'प्रतिक्रिया' : 'Feedback', isHindi ? 'आपकी प्रतिक्रिया महत्वपूर्ण है' : 'Your feedback matters to us.');
       return;
     }
 
@@ -682,29 +853,66 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       return;
     }
 
-    // Fallback: Handle "open X page" pattern manually
-    if (lowerTranscript.includes('open') && lowerTranscript.includes('page')) {
-      console.log('🎯 Processing open page command');
-      voicePageNavigator(lowerTranscript.replace('open', '').replace('page', '').trim());
-      resetTranscript();
-      return;
-    }
-
-    // Fallback: Handle simple navigation like "login", "signup", etc.
-    const simpleCommands = ['login', 'signup', 'home', 'contact', 'cart', 'profile', 'checkout'];
-    for (const cmd of simpleCommands) {
-      if (lowerTranscript === cmd || lowerTranscript.includes(`go to ${cmd}`)) {
-        console.log('🎯 Processing simple command:', cmd);
-        voicePageNavigator(cmd);
-        resetTranscript();
+    // Handle "navigating to X" pattern
+    if (lowerTranscript.includes('navigating to')) {
+      const pageName = lowerTranscript.replace('navigating to', '').replace('page', '').trim();
+      if (pageName && pageName.length > 0) {
+        console.log('🎯 Processing navigating to command:', pageName);
+        voicePageNavigator(pageName);
         return;
       }
     }
 
-    // If no command matched, give feedback
-    if (finalTranscript && finalTranscript.trim().length > 0) {
+    // Fallback: Handle "open X page" pattern manually
+    if (lowerTranscript.includes('open') && lowerTranscript.includes('page')) {
+      console.log('🎯 Processing open page command');
+      voicePageNavigator(lowerTranscript.replace('open', '').replace('page', '').trim());
+      return;
+    }
+
+    // Fallback: Handle simple "open X" pattern (without page keyword)
+    if (lowerTranscript.startsWith('open ')) {
+      const pageName = lowerTranscript.replace('open', '').trim();
+      if (pageName && pageName.length > 1) {
+        console.log('🎯 Processing open command:', pageName);
+        voicePageNavigator(pageName);
+        return;
+      }
+    }
+
+    // Fallback: Handle simple navigation like "login", "signup", etc.
+    const simpleCommands = ['login', 'signup', 'home', 'contact', 'cart', 'card', 'profile', 'checkout'];
+    for (const cmd of simpleCommands) {
+      if (lowerTranscript === cmd || lowerTranscript.includes(`go to ${cmd}`)) {
+        console.log('🎯 Processing simple command:', cmd);
+        // Map "card" to "cart"
+        const mappedCmd = cmd === 'card' ? 'cart' : cmd;
+        voicePageNavigator(mappedCmd);
+        return;
+      }
+    }
+
+    // If no command matched, only show error if transcript is substantial
+    // (to avoid showing errors for background noise)
+    if (cleanedTranscript && cleanedTranscript.trim().length > 5) {
       console.log('⚠️ Command not recognized:', lowerTranscript);
-      voiceResponse('Sorry, I did not understand that command.');
+      // Only show error message if it's not just single words or noise
+      const wordCount = cleanedTranscript.trim().split(/\s+/).length;
+      if (wordCount >= 2) {
+        const isHindi = lowerTranscript.match(/[\u0900-\u097F]/); // Detect Hindi characters
+        if (isHindi) {
+          voiceResponse('यह कमांड समझ नहीं आया। कृपया "मदद" बोलें या "?" दबाएं', 'hi');
+          triggerModal('कमांड समझ नहीं आया 🎤', '"मदद" बोलें सभी कमांड्स जानने के लिए', true);
+        } else {
+          voiceResponse('I did not understand that command. Please say "help" to see available commands.');
+          triggerModal('Command Not Recognized 🎤', 'Say "help" to see available voice commands', true);
+        }
+      }
+      return;
+    } else if (cleanedTranscript && cleanedTranscript.trim().length > 0) {
+      // Very short transcript - likely just noise after cleaning
+      console.log('🔇 Ignoring very short transcript after noise removal:', lowerTranscript);
+      return;
     }
 
   }, [finalTranscript]);
@@ -718,78 +926,69 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
     try {
       const synth = window.speechSynthesis;
       
+      // Check if speech synthesis is available
+      if (!synth) {
+        console.warn('⚠️ Speech Synthesis API not available in this browser');
+        return;
+      }
+
+      // Cancel any ongoing speech first
+      synth.cancel();
+      
       // Create new utterance for each speak
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1;
+      utterance.rate = 0.8; // Slower speech for better understanding
       utterance.pitch = 1;
       utterance.volume = 1;
 
-      // Get voices - try from state first, then from browser
-      let availableVoices = voices;
-      if (!availableVoices || availableVoices.length === 0) {
-        availableVoices = synth.getVoices();
-      }
+      // Use cached voices for faster lookups
+      let availableVoices = voicesCacheRef?.current || voices || synth.getVoices();
 
-      // Set voice and language
+      // Set voice and language with minimal processing
       if (availableVoices && availableVoices.length > 0) {
-        let selectedVoice;
+        let selectedVoice = null;
         
         if (lang === 'hi') {
-          // Search for Hindi voice
-          selectedVoice = availableVoices.find(voice => voice.lang.includes('hi'));
-          if (!selectedVoice) {
-            selectedVoice = availableVoices.find(voice => voice.lang.includes('en-IN'));
-          }
-          if (!selectedVoice) {
-            selectedVoice = availableVoices[0];
-          }
+          selectedVoice = availableVoices.find(voice => voice.lang?.includes('hi')) || 
+                          availableVoices.find(voice => voice.lang?.includes('en-IN')) ||
+                          availableVoices[availableVoices.length - 1];
           utterance.lang = 'hi-IN';
         } else {
-          // English voice
-          selectedVoice = availableVoices.find(voice => voice.lang.includes('en'));
-          if (!selectedVoice) {
-            selectedVoice = availableVoices[0];
-          }
+          selectedVoice = availableVoices.find(voice => voice.lang?.includes('en')) || availableVoices[0];
           utterance.lang = 'en-US';
         }
         
-        utterance.voice = selectedVoice;
-        console.log('🎤 Using voice:', selectedVoice?.name, 'Language:', lang);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
       } else {
-        console.log('⚠️ No voices available, using default');
+        console.warn('⚠️ No voices available for speech synthesis');
       }
 
-      // Stop listening while speaking to prevent feedback loop
-      const wasListening = listening && !stopListeningRef.current;
-      if (wasListening) {
-        console.log('🔇 Pausing listening during voice response');
-        SpeechRecognition.stopListening();
-      }
-
-      utterance.onstart = () => {
-        console.log('▶️ Speech started');
-      };
-
-      utterance.onend = () => {
-        console.log('✅ Speech finished');
-        if (wasListening && !stopListeningRef.current) {
-          console.log('🔊 Resuming listening after voice response');
-          setTimeout(() => {
-            SpeechRecognition.startListening({ continuous: true });
-          }, 300);
+      // Add comprehensive error handlers
+      utterance.onerror = (error) => {
+        console.error('❌ Speech synthesis error:', error.error || error);
+        // Gracefully handle errors without crashing
+        if (error.error === 'network') {
+          console.warn('⚠️ Network error during speech synthesis');
+        } else if (error.error === 'not-allowed') {
+          console.warn('⚠️ Speech synthesis not allowed by browser');
         }
       };
 
-      utterance.onerror = (error) => {
-        console.error('❌ Speech synthesis error:', error);
+      utterance.onend = () => {
+        console.log('✅ Speech synthesis completed');
       };
 
-      // Actually speak the text
-      console.log('🔊 Speaking:', text);
-      synth.cancel(); // Cancel any ongoing speech
+      utterance.onstart = () => {
+        console.log('🔊 Speech synthesis started');
+      };
+
+      // Speak immediately without delays
       synth.speak(utterance);
     } catch (error) {
-      console.error('❌ Voice response error:', error);
+      console.error('❌ Voice response error:', error.message || error);
+      // Fail gracefully - don't crash the app
     }
   }
 
@@ -833,22 +1032,13 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
   }, [])
 
   const loadVoices = () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !voicesCacheRef.current) {
       const synth = window.speechSynthesis;
       const availableVoices = synth.getVoices();
-      setVoices(availableVoices);
-      console.log('Available voices:', availableVoices.length);
-
-      if (speech && availableVoices.length > 0) {
-        // Try to find an English voice
-        const englishVoice = availableVoices.find(voice => voice.lang.includes('en'));
-        if (englishVoice) {
-          speech.voice = englishVoice;
-          console.log('Selected voice:', englishVoice.name);
-        } else if (availableVoices.length > 0) {
-          speech.voice = availableVoices[0];
-          console.log('Selected default voice:', availableVoices[0].name);
-        }
+      if (availableVoices.length > 0) {
+        voicesCacheRef.current = availableVoices;
+        setVoices(availableVoices);
+        console.log('✅ Voices cached:', availableVoices.length);
       }
     }
   }
@@ -892,41 +1082,57 @@ const VoiceProviderClient = ({ children, stopListeningRef }) => {
       checkExistenceInTranscript
     }}>
 
+      {/* Floating Help Button */}
+      <button 
+        onClick={() => setShowInstruction(true)}
+        className='fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-20 flex items-center justify-center text-xl font-bold transition-all hover:scale-110'
+        title="Press '?' or click for help (मदद के लिए '?' दबाएं या क्लिक करें)"
+      >
+        ?
+      </button>
+
       <div className='bg-[#8C52FF] text-white text-center'>
         <button className='floating-mic ' onClick={() => {
-          console.log('🎤 Mic button clicked, Current listening status:', listening);
+          console.log('🎤 Mic button clicked');
+          console.log('Current listening status:', listening);
+          console.log('Browser supports speech recognition:', browserSupportsSpeechRecognition);
+          
           if (listening) {
             console.log('⏹️ Stopping listening...');
             SpeechRecognition.stopListening();
+            triggerModal('Microphone', 'Voice recognition stopped');
           } else {
             console.log('▶️ Starting listening...');
-            SpeechRecognition.startListening({ continuous: true });
-            voiceResponse('I am listening');
+            try {
+              SpeechRecognition.startListening({ continuous: true });
+              triggerModal('Microphone', 'Listening... speak now!', true, <FaMicrophone size={50} />, 1000);
+              // Very small delay before voice response
+              voiceResponse('I am listening');
+            } catch (error) {
+              console.error('Error starting listening:', error);
+              triggerModal('Error', 'Could not start voice recognition', true, <IconMicrophoneOff size={50} />, 1200);
+            }
           }
         }}>{listening ?
           (
             <span >
-              <IconPlayerRecordFilled style={{ display: 'inline', color: 'white' }} color='#f00' /> listening... {transcript}
+              <IconPlayerRecordFilled style={{ display: 'inline', color: 'white' }} color='#f00' /> listening...
             </span>
           ) : (
             <span className='text-xl'><FaMicrophone /></span>
           )}</button>
-        {/* <p>Microphone: </p> */}
-        {/* <button onClick={SpeechRecognition.startListening}>Start</button>
-      <button onClick={SpeechRecognition.stopListening}>Stop</button>
-      <button onClick={resetTranscript}>Reset</button> */}
       </div>
 
       {children}
       <InfoModal {...modalOptions} showModal={showModal} setShowModal={setShowModal} />
-      {/* {
+      {
         showInstruction &&
-        <div className='fixed top-0 left-0 w-full h-full bg-slate-900 opacity-90 z-20'>
-          <div className='h-full backdrop-blur-md'>
+        <div className='fixed top-0 left-0 w-full h-full bg-slate-900 opacity-50 z-20' onClick={() => setShowInstruction(false)}>
+          <div className='h-full backdrop-blur-sm'>
             <InstructionModal setShowModal={setShowInstruction} />
           </div>
         </div>
-      } */}
+      }
     </VoiceContext.Provider>
   )
 }

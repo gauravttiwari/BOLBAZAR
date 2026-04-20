@@ -110,7 +110,14 @@ const Showpiece = () => {
             >
               <img
                 className="object-contain block m-auto h-60 w-full"
-                src={`${process.env.NEXT_PUBLIC_API_URL}/${product.images[0]}`}
+                src={(() => {
+                  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                  const imagePath = product.images?.[0];
+                  if (!imagePath) return '/placeholder.png';
+                  if (imagePath.startsWith('http')) return imagePath;
+                  if (!imagePath.includes('/') && !imagePath.includes('\\')) return `${apiBase}/uploads/${imagePath}`;
+                  return `${apiBase}/${imagePath}`;
+                })()}
                 alt={product.pname}
               />
             </Link>

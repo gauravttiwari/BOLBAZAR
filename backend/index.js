@@ -20,15 +20,38 @@ const app = express();
 
 const port = process.env.PORT || 5000;
 
+// Enhanced CORS Configuration
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:3000'],
-  credentials: true
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:5000'
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 3600
 }));
 
+// Additional security headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Expose-Headers', 'Content-Length, X-JSON-Response-Size');
+  next();
+});
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/product', productRouter);
 app.use('/user', userRouter);
@@ -43,7 +66,10 @@ app.use('/wishlist', wishlistRouter);
 app.use('/api/passwordless-auth', authRouter);
 app.use('/api', dashboardRouter);
 
-app.use(express.static('./static/uploads'));
+// Serve static files (images, uploads, etc)
+app.use('/uploads', express.static('./static/uploads'));
+app.use('/static/uploads', express.static('./static/uploads')); // Support old path format
+app.use(express.static('static'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

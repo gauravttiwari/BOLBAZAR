@@ -40,7 +40,7 @@ router.post('/uploadfile', uploader.single('myfile'), (req, res) => {
         return res.status(400).json({ status: 'error', message: 'No file uploaded' });
     }
     // Return the relative path to the uploaded file for frontend use
-    res.json({ status: 'success', url: `static/uploads/${req.file.filename}` });
+    res.json({ status: 'success', url: `uploads/${req.file.filename}` });
 })
 
 router.post('/sendotp', (req, res) => {

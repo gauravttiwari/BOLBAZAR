@@ -205,6 +205,7 @@ const Signup = () => {
                     value={formData.fname}
                     onChange={handleChange}
                     required
+                    autoComplete="given-name"
                     placeholder="John"
                     className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 bg-white"
                   />
@@ -220,6 +221,7 @@ const Signup = () => {
                     value={formData.lname}
                     onChange={handleChange}
                     required
+                    autoComplete="family-name"
                     placeholder="Doe"
                     className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 bg-white"
                   />
@@ -238,6 +240,7 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  autoComplete="email"
                   placeholder="your.email@example.com"
                   className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 bg-white"
                 />
@@ -257,6 +260,7 @@ const Signup = () => {
                       value={formData.password}
                       onChange={handleChange}
                       required
+                      autoComplete="new-password"
                       placeholder="Create a password (min 6 characters)"
                       className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 bg-white"
                     />
@@ -272,6 +276,7 @@ const Signup = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       required
+                      autoComplete="new-password"
                       placeholder="Confirm your password"
                       className="w-full px-4 py-3 rounded-sm border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-gray-900 bg-white"
                     />

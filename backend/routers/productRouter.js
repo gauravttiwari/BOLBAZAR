@@ -34,17 +34,28 @@ router.get('/getbycategory/:category',(req,res)=>{
 
 router.get('/getall',(req,res)=>{
     console.log('📥 GET /product/getall - Fetching all products');
-    Model.find({}).populate('seller')
-    .then((result) => {
-        console.log(`✅ Returning ${result.length} products`);
-        if (result.length > 0) {
-            console.log('Sample product:', result[0]);
-        }
-        res.status(200).json(result);
-    }).catch((err) => {
-        console.log('❌ Error fetching products:', err);
-        res.status(500).json(err);
-    });
+    Model.find({})
+        .populate({
+            path: 'seller',
+            strictPopulate: false // Allow missing seller references
+        })
+        .lean() // Return plain objects for better performance
+        .then((result) => {
+            // Filter out products with null seller if needed
+            const validProducts = result.filter(p => p.seller !== null);
+            console.log(`✅ Returning ${validProducts.length} products (${result.length - validProducts.length} with missing sellers)`);
+            if (validProducts.length > 0) {
+                console.log('Sample product:', validProducts[0]);
+            }
+            res.status(200).json(validProducts);
+        }).catch((err) => {
+            console.log('❌ Error fetching products:', err.message);
+            console.error('Full error:', err);
+            res.status(500).json({ 
+                error: 'Failed to fetch products',
+                message: err.message 
+            });
+        });
 });
 
 router.delete('/delete/:id',(req,res)=>{

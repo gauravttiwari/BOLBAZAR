@@ -914,7 +914,14 @@ const ProductDetail = () => {
                 >
                   <div className="aspect-square bg-gray-50 rounded-sm overflow-hidden mb-3">
                     <img
-                      src={`http://localhost:5000/${Array.isArray(product.images) ? product.images[0] : product.images}`}
+                      src={(() => {
+                        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                        const imagePath = Array.isArray(product.images) ? product.images[0] : product.images;
+                        if (!imagePath) return '/placeholder.png';
+                        if (imagePath.startsWith('http')) return imagePath;
+                        if (!imagePath.includes('/') && !imagePath.includes('\\')) return `${apiBase}/uploads/${imagePath}`;
+                        return `${apiBase}/${imagePath}`;
+                      })()}
                       alt={product.pname}
                       className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform"
                     />
